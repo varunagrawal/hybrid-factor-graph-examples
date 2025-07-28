@@ -50,10 +50,18 @@ class Experiment {
   explicit Experiment(const std::string& filename, bool isWithAmbiguity = false)
       : dataset_(filename), isWithAmbiguity(isWithAmbiguity) {
     ISAM2Params parameters;
-    parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams(0.0);
-    parameters.relinearizeThreshold = 0.01;
-    parameters.relinearizeSkip = 1;
+    parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams();
     isam2_ = ISAM2(parameters);
+  }
+
+  clock_t smootherUpdate(size_t maxNrHypotheses = 0) {
+    clock_t beforeUpdate = clock();
+    isam2_.update(graph_, initial_);
+    results = isam2_.calculateEstimate();
+    clock_t afterUpdate = clock();
+    graph_.resize(0);
+    initial_.clear();
+    return afterUpdate - beforeUpdate;
   }
 
   /// @brief Run the main experiment with a given maxLoopCount.
@@ -73,7 +81,7 @@ class Experiment {
     // Initial update
     clock_t beforeUpdate = clock();
     isam2_.update(graph_, initial_);
-    results = isam2_.calculateBestEstimate();
+    results = isam2_.calculateEstimate();
     clock_t afterUpdate = clock();
     smootherUpdateTimes.push_back(
         std::make_pair(index, afterUpdate - beforeUpdate));
@@ -108,7 +116,7 @@ class Experiment {
         graph_.add(
             BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose, kPoseNoiseModel));
 
-      } else {  // loop
+      } else {  // Loop closure
         int id = index % numMeasurements;
         if (isWithAmbiguity && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
@@ -121,9 +129,10 @@ class Experiment {
         index++;
       }
 
+      // Perform update
       clock_t beforeUpdate = clock();
       isam2_.update(graph_, initial_);
-      results = isam2_.calculateBestEstimate();
+      results = isam2_.calculateEstimate();
       clock_t afterUpdate = clock();
       smootherUpdateTimes.push_back(
           std::make_pair(index, afterUpdate - beforeUpdate));
@@ -132,12 +141,13 @@ class Experiment {
       index += 1;
 
       // Print loop index and time taken in processor clock ticks
-      if (index % 50 == 0 && keyS != keyT - 1) {
+      if (index % 100 == 0 && keyS != keyT - 1) {
         std::cout << "index: " << index << std::endl;
         std::cout << "accTime:  " << timeList.back() / CLOCKS_PER_SEC
                   << std::endl;
       }
 
+      // Record timing for odometry edges only
       if (keyS == keyT - 1) {
         clock_t curTime = clock();
         timeList.push_back(curTime - startTime);
@@ -158,9 +168,16 @@ class Experiment {
       }
     }
 
+    // Final update
+    auto time_delta = smootherUpdate();
+    smootherUpdateTimes.push_back({index, time_delta});
+
+    results = isam2_.calculateBestEstimate();
+
     clock_t endTime = clock();
     clock_t totalTime = endTime - startTime;
-    std::cout << "totalTime: " << totalTime / CLOCKS_PER_SEC << std::endl;
+    std::cout << "Total time: " << totalTime / CLOCKS_PER_SEC << " seconds"
+              << std::endl;
 
     /// Write results to file
     writeResult(results, (keyT + 1), "ISAM2_City10000.txt");
@@ -169,7 +186,7 @@ class Experiment {
     std::string timeFileName = "ISAM2_City10000_time.txt";
     outfileTime.open(timeFileName);
     for (auto accTime : timeList) {
-      outfileTime << accTime << std::endl;
+      outfileTime << accTime / CLOCKS_PER_SEC << std::endl;
     }
     outfileTime.close();
     std::cout << "Written cumulative time to: " << timeFileName << " file."
