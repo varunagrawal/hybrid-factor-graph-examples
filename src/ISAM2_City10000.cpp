@@ -39,6 +39,8 @@ class Experiment {
   // true: run original iSAM2 with ambiguities
   bool isWithAmbiguity;
 
+  size_t updateFrequency = 1;
+
  private:
   ISAM2 isam2_;
   NonlinearFactorGraph graph_;
@@ -125,8 +127,10 @@ class Experiment {
       }
 
       // Perform update
-      clock_t timeDelta = smootherUpdate();
-      smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
+      if (index % updateFrequency == 0) {
+        clock_t timeDelta = smootherUpdate();
+        smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
+      }
 
       // Record timing for odometry edges only
       if (keyS == keyT - 1) {

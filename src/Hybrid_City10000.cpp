@@ -45,10 +45,8 @@ class Experiment {
   // 3000: {1: 65s, 2: 20s, 3: 16s, 4: 21s, 5: 28s} With DT optimizations
   // 3000: {1: 59s, 2: 19s, 3: 18s, 4: 26s, 5: 33s} With DT optimizations +
   // merge
-  size_t updateFrequency = 3;
-
+  size_t updateFrequency = 1;
   size_t maxNrHypotheses = 10;
-
   size_t reLinearizationFrequency = 10;
 
   double marginalThreshold = 0.9999;
@@ -144,6 +142,7 @@ class Experiment {
     auto time_delta = smootherUpdate(maxNrHypotheses);
     std::vector<std::pair<size_t, double>> smootherUpdateTimes;
     smootherUpdateTimes.push_back({index, time_delta});
+    index += 1;
 
     // Flag to decide whether to run smoother update
     size_t numberOfHybridFactors = 0;
@@ -163,7 +162,8 @@ class Experiment {
 
       // Take the first one as the initial estimate
       Pose2 odomPose = poseArray[0];
-      if (keyS == keyT - 1) {
+
+      if (keyS == keyT - 1) {  // new X(key)
         // Odometry factor
         if (numMeasurements > 1) {
           // Add hybrid factor
@@ -174,14 +174,14 @@ class Experiment {
           discreteCount++;
           numberOfHybridFactors += 1;
           // std::cout << "mixtureFactor: " << keyS << " " << keyT << std::endl;
+
         } else {
           newFactors_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                                kPoseNoiseModel));
         }
         // Insert next pose initial guess
         initial_.insert(X(keyT), initial_.at<Pose2>(X(keyS)) * odomPose);
-      } else {
-        // Loop closure
+      } else {  // Loop closure
         HybridNonlinearFactor loopFactor =
             hybridLoopClosureFactor(loopCount, keyS, keyT, odomPose);
         // print loop closure event keys:
@@ -191,6 +191,7 @@ class Experiment {
         loopCount++;
       }
 
+      // Perform update
       if (numberOfHybridFactors >= updateFrequency) {
         auto time = smootherUpdate(maxNrHypotheses);
         smootherUpdateTimes.push_back({index, time});
@@ -210,17 +211,17 @@ class Experiment {
 
       // Print some status every 100 steps
       if (index % 100 == 0) {
-        // std::cout << "Index: " << index << std::endl;
+        std::cout << "Index: " << index << std::endl;
         if (!cumulativeTimeList.empty()) {
-          // std::cout << "Acc_time: " << cumulativeTimeList.back() / CLOCKS_PER_SEC
-          //           << " seconds" << std::endl;
+          std::cout << "accTime: " << cumulativeTimeList.back() / CLOCKS_PER_SEC
+                    << " seconds" << std::endl;
           // delta.discrete().print("The Discrete Assignment");
           tictoc_finishedIteration_();
           // tictoc_print_();
         }
       }
 
-      index++;
+      index += 1;
     }
 
     // Final update
@@ -237,10 +238,10 @@ class Experiment {
     std::cout << "Final error: " << smoother_.hybridBayesNet().error(delta)
               << std::endl;
 
-    // clock_t endTime = clock();
-    // clock_t totalTime = endTime - startTime;
-    // std::cout << "Total time: " << totalTime / CLOCKS_PER_SEC << " seconds"
-    //           << std::endl;
+    clock_t endTime = clock();
+    clock_t totalTime = endTime - startTime;
+    std::cout << "Total time: " << totalTime / CLOCKS_PER_SEC << " seconds"
+              << std::endl;
 
     // Write results to file
     writeResult(result, keyT + 1, "Hybrid_City10000.txt");
@@ -253,7 +254,8 @@ class Experiment {
       outfileTime << accTime / CLOCKS_PER_SEC << std::endl;
     }
     outfileTime.close();
-    std::cout << "Output " << timeFileName << " file." << std::endl;
+    std::cout << "Written cumulative time to: " << timeFileName << " file."
+              << std::endl;
 
     std::ofstream timingFile;
     std::string timingFileName = "Hybrid_City10000_timing.txt";
