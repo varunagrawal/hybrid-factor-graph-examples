@@ -43,7 +43,6 @@ if(HFGEX_WITH_TBB)
 endif(HFGEX_WITH_TBB)
 
 print_config("GTSAM Version" "${GTSAM_VERSION}")
-print_config("yaml-cpp Version" "${yaml-cpp_VERSION}")
 print_config("Use Intel TBB" "${TBB_VERSION}")
 print_config("Build Type" "${CMAKE_BUILD_TYPE}")
 print_config("GPerfTools Enabled" "${HFGEX_ENABLE_GPERFTOOLS}")
