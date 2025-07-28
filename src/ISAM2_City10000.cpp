@@ -51,10 +51,12 @@ class Experiment {
       : dataset_(filename), isWithAmbiguity(isWithAmbiguity) {
     ISAM2Params parameters;
     parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams();
+    parameters.relinearizeThreshold = 0.1;
+    parameters.relinearizeSkip = 10;
     isam2_ = ISAM2(parameters);
   }
 
-  clock_t smootherUpdate(size_t maxNrHypotheses = 0) {
+  inline clock_t smootherUpdate() {
     clock_t beforeUpdate = clock();
     isam2_.update(graph_, initial_);
     results = isam2_.calculateEstimate();
@@ -126,7 +128,6 @@ class Experiment {
               X(keyS), X(keyT), odomPose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
-        index++;
       }
 
       // Perform update
@@ -138,14 +139,6 @@ class Experiment {
           std::make_pair(index, afterUpdate - beforeUpdate));
       graph_.resize(0);
       initial_.clear();
-      index += 1;
-
-      // Print loop index and time taken in processor clock ticks
-      if (index % 100 == 0 && keyS != keyT - 1) {
-        std::cout << "index: " << index << std::endl;
-        std::cout << "accTime:  " << timeList.back() / CLOCKS_PER_SEC
-                  << std::endl;
-      }
 
       // Record timing for odometry edges only
       if (keyS == keyT - 1) {
@@ -153,25 +146,23 @@ class Experiment {
         timeList.push_back(curTime - startTime);
       }
 
-      if (timeList.size() % 100 == 0 && (keyS == keyT - 1)) {
-        std::string stepFileIdx = std::to_string(100000 + timeList.size());
-
-        std::ofstream stepOutfile;
-        std::string stepFileName = "step_files/ISAM2_City10000_S" + stepFileIdx;
-        stepOutfile.open(stepFileName + ".txt");
-        for (size_t i = 0; i < (keyT + 1); ++i) {
-          Pose2 outPose = results.at<Pose2>(X(i));
-          stepOutfile << outPose.x() << " " << outPose.y() << " "
-                      << outPose.theta() << std::endl;
+      // Print loop index and time taken in processor clock ticks
+      if (index % 100 == 0) {
+        std::cout << "Index: " << index << std::endl;
+        if (!timeList.empty()) {
+          std::cout << "accTime:  " << timeList.back() / CLOCKS_PER_SEC
+                    << " seconds" << std::endl;
         }
-        stepOutfile.close();
       }
+
+      index += 1;
     }
 
     // Final update
     auto time_delta = smootherUpdate();
     smootherUpdateTimes.push_back({index, time_delta});
 
+    // Final optimize
     results = isam2_.calculateBestEstimate();
 
     clock_t endTime = clock();
