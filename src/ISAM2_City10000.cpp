@@ -81,14 +81,8 @@ class Experiment {
     graph_.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
 
     // Initial update
-    clock_t beforeUpdate = clock();
-    isam2_.update(graph_, initial_);
-    results = isam2_.calculateEstimate();
-    clock_t afterUpdate = clock();
-    smootherUpdateTimes.push_back(
-        std::make_pair(index, afterUpdate - beforeUpdate));
-    graph_.resize(0);
-    initial_.clear();
+    clock_t timeDelta = smootherUpdate();
+    smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
     index += 1;
 
     // Start main loop
@@ -131,14 +125,8 @@ class Experiment {
       }
 
       // Perform update
-      clock_t beforeUpdate = clock();
-      isam2_.update(graph_, initial_);
-      results = isam2_.calculateEstimate();
-      clock_t afterUpdate = clock();
-      smootherUpdateTimes.push_back(
-          std::make_pair(index, afterUpdate - beforeUpdate));
-      graph_.resize(0);
-      initial_.clear();
+      clock_t timeDelta = smootherUpdate();
+      smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
 
       // Record timing for odometry edges only
       if (keyS == keyT - 1) {
