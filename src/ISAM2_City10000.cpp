@@ -73,7 +73,7 @@ class Experiment {
 
     std::vector<std::pair<size_t, double>> smootherUpdateTimes;
 
-    std::list<double> timeList;
+    std::list<double> cumulativeTimeList;
 
     // Set up initial prior
     Pose2 priorPose(0, 0, 0);
@@ -143,15 +143,16 @@ class Experiment {
       // Record timing for odometry edges only
       if (keyS == keyT - 1) {
         clock_t curTime = clock();
-        timeList.push_back(curTime - startTime);
+        cumulativeTimeList.push_back(curTime - startTime);
       }
 
       // Print loop index and time taken in processor clock ticks
       if (index % 100 == 0) {
         std::cout << "Index: " << index << std::endl;
-        if (!timeList.empty()) {
-          std::cout << "accTime:  " << timeList.back() / CLOCKS_PER_SEC
-                    << " seconds" << std::endl;
+        if (!cumulativeTimeList.empty()) {
+          std::cout << "accTime:  "
+                    << cumulativeTimeList.back() / CLOCKS_PER_SEC << " seconds"
+                    << std::endl;
         }
       }
 
@@ -176,7 +177,7 @@ class Experiment {
     std::ofstream outfileTime;
     std::string timeFileName = "ISAM2_City10000_time.txt";
     outfileTime.open(timeFileName);
-    for (auto accTime : timeList) {
+    for (auto accTime : cumulativeTimeList) {
       outfileTime << accTime / CLOCKS_PER_SEC << std::endl;
     }
     outfileTime.close();
