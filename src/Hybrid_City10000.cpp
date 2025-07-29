@@ -41,13 +41,9 @@ class Experiment {
   // Parameters with default values
   size_t maxLoopCount = 8000;
 
-  // 3000: {1: 62s, 2: 21s, 3: 20s, 4: 31s, 5: 39s} No DT optimizations
-  // 3000: {1: 65s, 2: 20s, 3: 16s, 4: 21s, 5: 28s} With DT optimizations
-  // 3000: {1: 59s, 2: 19s, 3: 18s, 4: 26s, 5: 33s} With DT optimizations +
-  // merge
-  size_t updateFrequency = 1;
-  size_t maxNrHypotheses = 10;
-  size_t reLinearizationFrequency = 10;
+  size_t updateFrequency = 1;  // best value: 3;
+  size_t maxNrHypotheses = 16;
+  size_t reLinearizationFrequency = 10;  // best value:  8;
 
   double marginalThreshold = 0.9999;
 
@@ -191,7 +187,6 @@ class Experiment {
         loopCount++;
       }
 
-      // Perform update
       if (numberOfHybridFactors >= updateFrequency) {
         auto time = smootherUpdate(maxNrHypotheses);
         smootherUpdateTimes.push_back({index, time});
