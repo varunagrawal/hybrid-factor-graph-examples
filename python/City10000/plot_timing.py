@@ -11,9 +11,9 @@ def plot_cumulative_time():
     isam2_times = np.loadtxt("ISAM2_City10000_time.txt",
                              delimiter=",",
                              dtype=float)
-    # mh_isam_times = np.loadtxt("MH_ISAM2_City10000_time.txt",
-    #                            delimiter=",",
-    #                            dtype=float)
+    mh_isam_times = np.loadtxt("MH_ISAM2_City10000_time.txt",
+                               delimiter=",",
+                               dtype=float)
     hybrid_times = np.loadtxt("Hybrid_City10000_time.txt",
                               delimiter=",",
                               dtype=float)
@@ -30,11 +30,11 @@ def plot_cumulative_time():
              linewidth=linewidth,
              label='iSAM2',
              color=(0.1, 0.1, 0.9))
-    # plt.plot(timesteps,
-    #          mh_isam_times[:N]
-    #          linewidth=linewidth,
-    #          label='MH-iSAM2',
-    #          color=(0.7, 0.1, 0.1))
+    plt.plot(timesteps,
+             mh_isam_times[:N]
+             linewidth=linewidth,
+             label='MH-iSAM2',
+             color=(0.7, 0.1, 0.1))
     plt.plot(timesteps,
              hybrid_times[:N],
              linewidth=linewidth,
@@ -52,9 +52,9 @@ def plot_per_update_time():
     isam2_times = np.loadtxt("ISAM2_City10000_timing.txt",
                              delimiter=",",
                              dtype=float)
-    # mh_isam_times = np.loadtxt("MH_ISAM2_City10000_timing.txt",
-    #                            delimiter=",",
-    #                            dtype=float)
+    mh_isam_times = np.loadtxt("MH_ISAM2_City10000_timing.txt",
+                               delimiter=",",
+                               dtype=float)
     hybrid_times = np.loadtxt("Hybrid_City10000_timing.txt",
                               delimiter=",",
                               dtype=float)
@@ -71,11 +71,11 @@ def plot_per_update_time():
                  linewidth=linewidth,
                  label='iSAM2',
                  color=(0.1, 0.1, 0.9))
-    # plt.semilogy(mh_isam_times[::skip, 0],
-    #              mh_isam_times[::skip, 1],
-    #              linewidth=linewidth,
-    #              label='MH-iSAM2',
-    #              color=(0.7, 0.1, 0.1))
+    plt.semilogy(mh_isam_times[::skip, 0],
+                 mh_isam_times[::skip, 1],
+                 linewidth=linewidth,
+                 label='MH-iSAM2',
+                 color=(0.7, 0.1, 0.1))
     plt.semilogy(hybrid_times[::skip, 0],
                  hybrid_times[::skip, 1],
                  linewidth=linewidth,

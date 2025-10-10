@@ -1,13 +1,11 @@
 """
-Script to plot City10000 results.
-Can be used to plot results from both C++ and python scripts.
+Script to plot City10000 results at different timesteps.
 
 Usage:
 ```
-python python/City10000/plot_results.py ISAM2_GT_city10000.txt \
-    --estimates results/ISAM2_city10000.txt \
-        results/DCSAM_City10000.txt \
-        results/Hybrid_City10000.txt
+python plot_results.py ISAM2_GT_city10000.txt \
+    --estimates Hybrid_City10000.txt \
+    --indices 100 1000 2000 5000 10000
 ```
 
 NOTE: We can pass in as many estimates as we need,
@@ -34,19 +32,10 @@ def parse_args():
         "--estimates",
         nargs='+',
         help="File(s) with estimates (as .txt), can be more than one.")
-    parser.add_argument("--labels",
+    parser.add_argument("--indices",
                         nargs='+',
-                        help="Label to apply to the estimate graph.",
-                        default=("ISAM2", "DCSAM", "Hybrid Factor Graphs"))
-    parser.add_argument(
-        "--colors",
-        nargs='+',
-        help="The color to apply to each of the estimate graphs.",
-        default=(
-            (0.9, 0.1, 0.1, 0.4),
-            (0.3, 0.3, 0.6, 0.4),
-            (0.1, 0.1, 0.9, 0.4),
-        ))
+                        help="The time indices at which to plot th estimate.",
+                        default=(100, 1000, 2000, 5000, 10000))
     return parser.parse_args()
 
 
@@ -90,14 +79,19 @@ def main():
     args = parse_args()
     gt = np.loadtxt(args.ground_truth, delimiter=" ")
 
-    for i in range(len(args.estimates)):
-        h_poses = np.loadtxt(args.estimates[i], delimiter=" ")
+
+    for i, time_index in enumerate(args.indices):
+        estimate_poses = np.loadtxt(args.estimates[i], delimiter=" ")
+        idx = min(int(time_index), estimate_poses.shape[0])
+
         # Limit ground truth to the number of estimates so the plot looks cleaner
-        plot_estimates(gt[:h_poses.shape[0]],
-                       h_poses,
+        gt_poses = gt[:idx]
+
+        num_hypothesis = 16
+        plot_estimates(gt_poses,
+                       estimate_poses,
                        i + 1,
-                       estimate_color=args.colors[i],
-                       estimate_label=args.labels[i])
+                       estimate_label=f"Hybrid_City_{time_index}_{num_hypothesis}")
 
     plt.show()
 

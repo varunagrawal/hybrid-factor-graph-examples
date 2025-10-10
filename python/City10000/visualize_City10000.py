@@ -1,8 +1,7 @@
 import numpy as np
+from gtsam import Pose2, Values, findExampleDataFile
 from gtsam.symbol_shorthand import X
 from matplotlib import pyplot as plt
-
-from gtsam import Pose2, Values, findExampleDataFile
 
 
 class City10000Dataset:

@@ -39,11 +39,11 @@ class Experiment {
 
  public:
   // Parameters with default values
-  size_t maxLoopCount = 8000;
+  size_t maxLoopCount = 8000;  // Full dataset is 20687
 
-  size_t updateFrequency = 1;  // best value: 3;
+  size_t updateFrequency = 1;  // best value: 4;
   size_t maxNrHypotheses = 16;
-  size_t reLinearizationFrequency = 10;  // best value:  8;
+  size_t reLinearizationFrequency = 10;  // best value: 6;
 
   double marginalThreshold = 0.9999;
 
@@ -239,7 +239,7 @@ class Experiment {
               << std::endl;
 
     // Write results to file
-    writeResult(result, keyT + 1, "Hybrid_City10000.txt");
+    writeResult(result, keyT + 1, "Hybrid_City10000_" + std::to_string(maxLoopCount) + ".txt");
 
     // Write timing info to file
     std::ofstream outfileTime;
