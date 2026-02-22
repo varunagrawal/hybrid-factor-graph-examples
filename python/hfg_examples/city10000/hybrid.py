@@ -5,6 +5,7 @@ Author: Varun Agrawal
 """
 
 import time
+from pathlib import Path
 
 import gtsam
 import numpy as np
@@ -35,6 +36,7 @@ class HybridEstimator:
         relinearization_frequency: int = 6,
         marginal_threshold: float = 0.9999,
         plot_hypotheses: bool = False,
+        save_path: Path = Path("results"),
     ):
         self.dataset_ = dataset.City10000Dataset(filename)
         self.max_loop_count = max_loop_count
@@ -49,6 +51,7 @@ class HybridEstimator:
         self.initial_ = Values()
 
         self.plot_hypotheses = plot_hypotheses
+        self.save_path_ = save_path
 
     def hybrid_loop_closure_factor(
         self, loop_counter, key_s, key_t, measurement: Pose2
@@ -235,7 +238,9 @@ class HybridEstimator:
         total_time = end_time - start_time
         print(f"Total time: {total_time} seconds")
 
-        # self.save_results(result, key_t + 1, time_list)
+        self.save_results_and_timing(
+            result, key_t + 1, time_list, save_path=self.save_path_
+        )
 
         if self.plot_hypotheses:
             # Get all the discrete values
@@ -318,13 +323,15 @@ class HybridEstimator:
             filename=f"city10000_results_{num_iters}.svg",
         )
 
-    def save_results(self, result, final_key, time_list):
+    def save_results_and_timing(self, result, final_key, time_list, save_path):
         """Save results to file."""
         # Write results to file
-        self.write_result(result, final_key, "Hybrid_City10000.txt")
+        self.write_result(result, final_key, save_path / "Hybrid_City10000.txt")
 
         # Write timing info to file
-        self.write_timing_info(time_list=time_list)
+        self.write_timing_info(
+            time_list=time_list, filename=save_path / "Hybrid_City10000_time.txt"
+        )
 
     def write_result(self, result, num_poses, filename="Hybrid_city10000.txt"):
         """
@@ -342,11 +349,11 @@ class HybridEstimator:
 
         print(f"Output written to {filename}")
 
-    def write_timing_info(self, time_list, time_filename="Hybrid_City10000_time.txt"):
+    def write_timing_info(self, time_list, filename):
         """Log all the timing information to a file"""
 
-        with open(time_filename, "w") as out_file_time:
+        with open(filename, "w") as out_file_time:
             for acc_time in time_list:
                 out_file_time.write(f"{acc_time}\n")
 
-            print(f"Output {time_filename} file.")
+        print(f"Timing saved to {filename}.")
