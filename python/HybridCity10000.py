@@ -1,9 +1,14 @@
-"""Script to run the Hybrid Estimator on the City10000 dataset."""
+"""
+Script for running hybrid estimator on the City10000 dataset.
+
+Author: Varun Agrawal
+"""
 
 import argparse
 
 import gtsam
-from hfg_examples.city10000.hybrid import HybridEstimator
+
+from hfg_examples.city10000 import HybridEstimator
 
 
 def parse_arguments():
@@ -15,8 +20,8 @@ def parse_arguments():
         default="T1_city10000_04.txt",
     )
     parser.add_argument(
-        "--max_loop_count",
-        "-l",
+        "--num_timesteps",
+        "-n",
         type=int,
         default=10000,
         help="The maximum number of loops to run over the dataset",
@@ -50,7 +55,7 @@ def main():
 
     estimator = HybridEstimator(
         gtsam.findExampleDataFile(args.data_file),
-        max_loop_count=args.max_loop_count,
+        num_timesteps=args.num_timesteps,
         update_frequency=args.update_frequency,
         max_num_hypotheses=args.max_num_hypotheses,
         plot_hypotheses=args.plot_hypotheses,

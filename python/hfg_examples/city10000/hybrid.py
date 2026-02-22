@@ -30,7 +30,7 @@ class HybridEstimator:
     def __init__(
         self,
         filename: str,
-        max_loop_count: int = 10000,
+        num_timesteps: int = 10000,
         update_frequency: int = 4,
         max_num_hypotheses: int = 10,
         relinearization_frequency: int = 6,
@@ -39,7 +39,7 @@ class HybridEstimator:
         save_path: Path = Path("results"),
     ):
         self.dataset_ = dataset.City10000Dataset(filename)
-        self.max_loop_count = max_loop_count
+        self.num_timesteps = num_timesteps
         self.update_frequency = update_frequency
         self.max_num_hypotheses = max_num_hypotheses
         self.relinearization_frequency = relinearization_frequency
@@ -113,7 +113,7 @@ class HybridEstimator:
         return after_update - before_update
 
     def run(self):
-        """Run the main experiment with a given max_loop_count."""
+        """Run the main experiment with a given num_timesteps."""
         # Initialize local variables
         discrete_count = 0
         index = 0
@@ -141,7 +141,7 @@ class HybridEstimator:
         result = Values()
         start_time = time.time()
 
-        while index < self.max_loop_count:
+        while index < self.num_timesteps:
             pose_array, keys, is_ambiguous_loop = self.dataset_.next()
             if pose_array is None:
                 break
