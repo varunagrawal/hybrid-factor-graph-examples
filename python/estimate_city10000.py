@@ -8,12 +8,18 @@ import argparse
 
 import gtsam
 
-from hfg_examples.city10000 import HybridEstimator
+from hfg_examples.city10000 import DCSAMEstimator, HybridEstimator
 
 
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "estimator",
+        help="The estimator to run, either 'DCSAM' or 'Hybrid'.",
+        choices=("dcsam", "hybrid"),
+    )
+
     parser.add_argument(
         "--data_file",
         help="The path to the City10000 data file",
@@ -23,8 +29,8 @@ def parse_arguments():
         "--num_timesteps",
         "-n",
         type=int,
-        default=10000,
-        help="The maximum number of loops to run over the dataset",
+        default=20687,
+        help="The maximum number of timesteps to run over the dataset.",
     )
     parser.add_argument(
         "--update_frequency",
@@ -53,7 +59,14 @@ def main():
     """Main runner"""
     args = parse_arguments()
 
-    estimator = HybridEstimator(
+    if args.estimator == "hybrid":
+        Estimator = HybridEstimator
+    elif args.estimator == "dcsam":
+        Estimator = DCSAMEstimator
+    else:
+        raise ValueError(f"Unknown estimator {args.estimator} specified.")
+
+    estimator = Estimator(
         gtsam.findExampleDataFile(args.data_file),
         num_timesteps=args.num_timesteps,
         update_frequency=args.update_frequency,
