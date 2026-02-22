@@ -32,29 +32,35 @@ def parse_args():
     parser.add_argument("ground_truth", help="The ground truth data file.")
     parser.add_argument(
         "--estimates",
-        nargs='+',
-        help="File(s) with estimates (as .txt), can be more than one.")
-    parser.add_argument("--labels",
-                        nargs='+',
-                        help="Label to apply to the estimate graph.",
-                        default=("ISAM2", "DCSAM", "Hybrid Factor Graphs"))
+        nargs="+",
+        help="File(s) with estimates (as .txt), can be more than one.",
+    )
+    parser.add_argument(
+        "--labels",
+        nargs="+",
+        help="Label to apply to the estimate graph.",
+        default=("ISAM2", "DCSAM", "Hybrid Factor Graphs"),
+    )
     parser.add_argument(
         "--colors",
-        nargs='+',
+        nargs="+",
         help="The color to apply to each of the estimate graphs.",
         default=(
             (0.9, 0.1, 0.1, 0.4),
             (0.3, 0.3, 0.6, 0.4),
             (0.1, 0.1, 0.9, 0.4),
-        ))
+        ),
+    )
     return parser.parse_args()
 
 
-def plot_estimates(gt,
-                   estimates,
-                   fignum: int,
-                   estimate_color=(0.1, 0.1, 0.9, 0.4),
-                   estimate_label="Hybrid Factor Graphs"):
+def plot_estimates(
+    gt,
+    estimates,
+    fignum: int,
+    estimate_color=(0.1, 0.1, 0.9, 0.4),
+    estimate_label="Hybrid Factor Graphs",
+):
     """Plot the City10000 estimates against the ground truth.
 
     Args:
@@ -68,20 +74,24 @@ def plot_estimates(gt,
     """
     fig = plt.figure(fignum)
     ax = fig.gca()
-    ax.axis('equal')
+    ax.axis("equal")
     ax.axis((-65.0, 65.0, -75.0, 60.0))
-    ax.plot(gt[:, 0],
-            gt[:, 1],
-            '--',
-            linewidth=1,
-            color=(0.1, 0.7, 0.1, 0.5),
-            label="Ground Truth")
-    ax.plot(estimates[:, 0],
-            estimates[:, 1],
-            '-',
-            linewidth=1,
-            color=estimate_color,
-            label=estimate_label)
+    ax.plot(
+        gt[:, 0],
+        gt[:, 1],
+        "--",
+        linewidth=1,
+        color=(0.1, 0.7, 0.1, 0.5),
+        label="Ground Truth",
+    )
+    ax.plot(
+        estimates[:, 0],
+        estimates[:, 1],
+        "-",
+        linewidth=1,
+        color=estimate_color,
+        label=estimate_label,
+    )
     ax.legend()
 
 
@@ -93,11 +103,13 @@ def main():
     for i in range(len(args.estimates)):
         h_poses = np.loadtxt(args.estimates[i], delimiter=" ")
         # Limit ground truth to the number of estimates so the plot looks cleaner
-        plot_estimates(gt[:h_poses.shape[0]],
-                       h_poses,
-                       i + 1,
-                       estimate_color=args.colors[i],
-                       estimate_label=args.labels[i])
+        plot_estimates(
+            gt[: h_poses.shape[0]],
+            h_poses,
+            i + 1,
+            estimate_color=args.colors[i],
+            estimate_label=args.labels[i],
+        )
 
     plt.show()
 

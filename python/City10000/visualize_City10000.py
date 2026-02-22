@@ -10,7 +10,7 @@ class City10000Dataset:
     def __init__(self, filename):
         self.filename_ = filename
         try:
-            self.f_ = open(self.filename_, 'r')
+            self.f_ = open(self.filename_, "r")
         except OSError:
             print(f"Failed to open file: {self.filename_}")
 
@@ -21,8 +21,7 @@ class City10000Dataset:
         """Read a `line` from the dataset, separated by the `delimiter`."""
         return line.split(delimiter)
 
-    def parse_line(self,
-                   line: str) -> tuple[list[Pose2], tuple[int, int], bool]:
+    def parse_line(self, line: str) -> tuple[list[Pose2], tuple[int, int], bool]:
         """Parse line from file"""
         parts = self.read_line(line)
 
@@ -103,20 +102,14 @@ def main():
 
     fig = plt.figure()
     ax = plt.gca()
-    ax.axis('equal')
+    ax.axis("equal")
     ax.axis((-75.0, 100.0, -75.0, 75.0))
-    ax.plot(poses_0[:, 0],
-            poses_0[:, 1],
-            '-',
-            linewidth=1,
-            color='red',
-            label="Poses 0")
-    ax.plot(poses_1[:, 0],
-            poses_1[:, 1],
-            '-',
-            linewidth=1,
-            color='blue',
-            label="Poses 1")
+    ax.plot(
+        poses_0[:, 0], poses_0[:, 1], "-", linewidth=1, color="red", label="Poses 0"
+    )
+    ax.plot(
+        poses_1[:, 0], poses_1[:, 1], "-", linewidth=1, color="blue", label="Poses 1"
+    )
     ax.legend()
 
     plt.show()

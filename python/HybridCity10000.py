@@ -13,45 +13,55 @@ Author: Varun Agrawal
 import argparse
 import time
 
+import gtsam
 import numpy as np
+from gtsam import (
+    BetweenFactorPose2,
+    HybridNonlinearFactor,
+    HybridNonlinearFactorGraph,
+    HybridSmoother,
+    Pose2,
+    PriorFactorPose2,
+    Values,
+)
 from gtsam.symbol_shorthand import L, M, X
 from matplotlib import pyplot as plt
-
-import gtsam
-from gtsam import (BetweenFactorPose2, HybridNonlinearFactor,
-                   HybridNonlinearFactorGraph, HybridSmoother, HybridValues,
-                   Pose2, PriorFactorPose2, Values)
 
 
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_file",
-                        help="The path to the City10000 data file",
-                        default="T1_city10000_04.txt")
+    parser.add_argument(
+        "--data_file",
+        help="The path to the City10000 data file",
+        default="T1_city10000_04.txt",
+    )
     parser.add_argument(
         "--max_loop_count",
         "-l",
         type=int,
         default=10000,
-        help="The maximum number of loops to run over the dataset")
+        help="The maximum number of loops to run over the dataset",
+    )
     parser.add_argument(
         "--update_frequency",
         "-u",
         type=int,
         default=3,
-        help="After how many steps to run the smoother update.")
+        help="After how many steps to run the smoother update.",
+    )
     parser.add_argument(
         "--max_num_hypotheses",
         "-m",
         type=int,
         default=10,
-        help="The maximum number of hypotheses to keep at any time.")
+        help="The maximum number of hypotheses to keep at any time.",
+    )
     parser.add_argument(
         "--plot_hypotheses",
         "-p",
         action="store_true",
-        help="Plot all hypotheses. NOTE: This is exponential, use with caution."
+        help="Plot all hypotheses. NOTE: This is exponential, use with caution.",
     )
     return parser.parse_args()
 
@@ -61,10 +71,12 @@ open_loop_model = gtsam.noiseModel.Diagonal.Sigmas(np.ones(3) * 10)
 open_loop_constant = open_loop_model.negLogConstant()
 
 prior_noise_model = gtsam.noiseModel.Diagonal.Sigmas(
-    np.asarray([0.0001, 0.0001, 0.0001]))
+    np.asarray([0.0001, 0.0001, 0.0001])
+)
 
 pose_noise_model = gtsam.noiseModel.Diagonal.Sigmas(
-    np.asarray([1.0 / 20.0, 1.0 / 20.0, 1.0 / 100.0]))
+    np.asarray([1.0 / 20.0, 1.0 / 20.0, 1.0 / 100.0])
+)
 pose_noise_constant = pose_noise_model.negLogConstant()
 
 
@@ -74,7 +86,7 @@ class City10000Dataset:
     def __init__(self, filename):
         self.filename_ = filename
         try:
-            self.f_ = open(self.filename_, 'r')
+            self.f_ = open(self.filename_, "r")
         except OSError:
             print(f"Failed to open file: {self.filename_}")
 
@@ -85,8 +97,7 @@ class City10000Dataset:
         """Read a `line` from the dataset, separated by the `delimiter`."""
         return line.split(delimiter)
 
-    def parse_line(self,
-                   line: str) -> tuple[list[Pose2], tuple[int, int], bool]:
+    def parse_line(self, line: str) -> tuple[list[Pose2], tuple[int, int], bool]:
         """Parse line from file"""
         parts = self.read_line(line)
 
@@ -115,13 +126,15 @@ class City10000Dataset:
             return None, None, None
 
 
-def plot_all_results(ground_truth,
-                     all_results,
-                     iters=0,
-                     estimate_color=(0.1, 0.1, 0.9, 0.4),
-                     estimate_label="Hybrid Factor Graphs",
-                     text="",
-                     filename="city10000_results.svg"):
+def plot_all_results(
+    ground_truth,
+    all_results,
+    iters=0,
+    estimate_color=(0.1, 0.1, 0.9, 0.4),
+    estimate_label="Hybrid Factor Graphs",
+    text="",
+    filename="city10000_results.svg",
+):
     """Plot the City10000 estimates against the ground truth.
 
     Args:
@@ -142,35 +155,34 @@ def plot_all_results(ground_truth,
 
     for i, (estimates, s, prob) in enumerate(all_results):
         ax = axes[i]
-        ax.axis('equal')
+        ax.axis("equal")
         ax.axis((-75.0, 100.0, -75.0, 75.0))
 
-        gt = ground_truth[:estimates.shape[0]]
-        ax.plot(gt[:, 0],
-                gt[:, 1],
-                '--',
-                linewidth=1,
-                color=(0.1, 0.7, 0.1, 0.5),
-                label="Ground Truth")
-        ax.plot(estimates[:, 0],
-                estimates[:, 1],
-                '-',
-                linewidth=1,
-                color=estimate_color,
-                label=estimate_label)
+        gt = ground_truth[: estimates.shape[0]]
+        ax.plot(
+            gt[:, 0],
+            gt[:, 1],
+            "--",
+            linewidth=1,
+            color=(0.1, 0.7, 0.1, 0.5),
+            label="Ground Truth",
+        )
+        ax.plot(
+            estimates[:, 0],
+            estimates[:, 1],
+            "-",
+            linewidth=1,
+            color=estimate_color,
+            label=estimate_label,
+        )
         # ax.legend()
-        ax.set_title(f"P={prob:.3f}\n{s}", fontdict={'fontsize': 10})
+        ax.set_title(f"P={prob:.3f}\n{s}", fontdict={"fontsize": 10})
 
     fig.suptitle(f"After {iters} iterations")
 
     num_chunks = int(np.ceil(len(text) / 90))
-    text = "\n".join(text[i * 60:(i + 1) * 60] for i in range(num_chunks))
-    fig.text(0.5,
-             0.015,
-             s=text,
-             wrap=True,
-             horizontalalignment='center',
-             fontsize=12)
+    text = "\n".join(text[i * 60 : (i + 1) * 60] for i in range(num_chunks))
+    fig.text(0.5, 0.015, s=text, wrap=True, horizontalalignment="center", fontsize=12)
 
     fig.savefig(filename, format="svg")
 
@@ -178,14 +190,16 @@ def plot_all_results(ground_truth,
 class Experiment:
     """Experiment Class"""
 
-    def __init__(self,
-                 filename: str,
-                 marginal_threshold: float = 0.9999,
-                 max_loop_count: int = 150,
-                 update_frequency: int = 3,
-                 max_num_hypotheses: int = 10,
-                 relinearization_frequency: int = 10,
-                 plot_hypotheses: bool = False):
+    def __init__(
+        self,
+        filename: str,
+        marginal_threshold: float = 0.9999,
+        max_loop_count: int = 150,
+        update_frequency: int = 3,
+        max_num_hypotheses: int = 10,
+        relinearization_frequency: int = 10,
+        plot_hypotheses: bool = False,
+    ):
         self.dataset_ = City10000Dataset(filename)
         self.max_loop_count = max_loop_count
         self.update_frequency = update_frequency
@@ -198,28 +212,26 @@ class Experiment:
 
         self.plot_hypotheses = plot_hypotheses
 
-    def hybrid_loop_closure_factor(self, loop_counter, key_s, key_t,
-                                   measurement: Pose2):
+    def hybrid_loop_closure_factor(
+        self, loop_counter, key_s, key_t, measurement: Pose2
+    ):
         """
         Create a hybrid loop closure factor where
         0 - loose noise model and 1 - loop noise model.
         """
         l = (L(loop_counter), 2)
-        f0 = BetweenFactorPose2(X(key_s), X(key_t), measurement,
-                                open_loop_model)
-        f1 = BetweenFactorPose2(X(key_s), X(key_t), measurement,
-                                pose_noise_model)
+        f0 = BetweenFactorPose2(X(key_s), X(key_t), measurement, open_loop_model)
+        f1 = BetweenFactorPose2(X(key_s), X(key_t), measurement, pose_noise_model)
         factors = [(f0, open_loop_constant), (f1, pose_noise_constant)]
         mixture_factor = HybridNonlinearFactor(l, factors)
         return mixture_factor
 
-    def hybrid_odometry_factor(self, key_s, key_t, m,
-                               pose_array) -> HybridNonlinearFactor:
+    def hybrid_odometry_factor(
+        self, key_s, key_t, m, pose_array
+    ) -> HybridNonlinearFactor:
         """Create hybrid odometry factor with discrete measurement choices."""
-        f0 = BetweenFactorPose2(X(key_s), X(key_t), pose_array[0],
-                                pose_noise_model)
-        f1 = BetweenFactorPose2(X(key_s), X(key_t), pose_array[1],
-                                pose_noise_model)
+        f0 = BetweenFactorPose2(X(key_s), X(key_t), pose_array[0], pose_noise_model)
+        f1 = BetweenFactorPose2(X(key_s), X(key_t), pose_array[1], pose_noise_model)
 
         factors = [(f0, pose_noise_constant), (f1, pose_noise_constant)]
         mixture_factor = HybridNonlinearFactor(m, factors)
@@ -230,8 +242,7 @@ class Experiment:
         """Perform smoother update and optimize the graph."""
         print(f"Smoother update: {self.new_factors_.size()}")
         before_update = time.time()
-        self.smoother_.update(self.new_factors_, self.initial_,
-                              max_num_hypotheses)
+        self.smoother_.update(self.new_factors_, self.initial_, max_num_hypotheses)
         self.new_factors_.resize(0)
         after_update = time.time()
         return after_update - before_update
@@ -254,13 +265,14 @@ class Experiment:
         loop_count = 0
         update_count = 0
 
-        time_list = []  #list[(int, float)]
+        time_list = []  # list[(int, float)]
 
         # Set up initial prior
         priorPose = Pose2(0, 0, 0)
         self.initial_.insert(X(0), priorPose)
         self.new_factors_.push_back(
-            PriorFactorPose2(X(0), priorPose, prior_noise_model))
+            PriorFactorPose2(X(0), priorPose, prior_noise_model)
+        )
 
         # Initial update
         update_time = self.smoother_update(self.max_num_hypotheses)
@@ -284,7 +296,6 @@ class Experiment:
             num_measurements = len(pose_array)
 
             # Take the first one as the initial estimate
-            # odom_pose = pose_array[np.random.choice(num_measurements)]
             odom_pose = pose_array[0]
             if key_s == key_t - 1:
                 # Odometry factor
@@ -292,7 +303,8 @@ class Experiment:
                     # Add hybrid factor
                     m = (M(discrete_count), num_measurements)
                     mixture_factor = self.hybrid_odometry_factor(
-                        key_s, key_t, m, pose_array)
+                        key_s, key_t, m, pose_array
+                    )
                     self.new_factors_.push_back(mixture_factor)
 
                     discrete_count += 1
@@ -300,23 +312,26 @@ class Experiment:
                     print(f"mixture_factor: {key_s} {key_t}")
                 else:
                     self.new_factors_.push_back(
-                        BetweenFactorPose2(X(key_s), X(key_t), odom_pose,
-                                           pose_noise_model))
+                        BetweenFactorPose2(
+                            X(key_s), X(key_t), odom_pose, pose_noise_model
+                        )
+                    )
 
                 # Insert next pose initial guess
                 self.initial_.insert(
-                    X(key_t),
-                    self.initial_.atPose2(X(key_s)) * odom_pose)
+                    X(key_t), self.initial_.atPose2(X(key_s)) * odom_pose
+                )
             else:
                 # Loop closure
                 if is_ambiguous_loop:
                     loop_factor = self.hybrid_loop_closure_factor(
-                        loop_count, key_s, key_t, odom_pose)
+                        loop_count, key_s, key_t, odom_pose
+                    )
 
                 else:
-                    loop_factor = BetweenFactorPose2(X(key_s), X(key_t),
-                                                     odom_pose,
-                                                     pose_noise_model)
+                    loop_factor = BetweenFactorPose2(
+                        X(key_s), X(key_t), odom_pose, pose_noise_model
+                    )
 
                 # print loop closure event keys:
                 print(f"Loop closure: {key_s} {key_t}")
@@ -377,8 +392,9 @@ class Experiment:
         """Plot all possible hypotheses."""
 
         # Get ground truth
-        gt = np.loadtxt(gtsam.findExampleDataFile("ISAM2_GT_city10000.txt"),
-                        delimiter=" ")
+        gt = np.loadtxt(
+            gtsam.findExampleDataFile("ISAM2_GT_city10000.txt"), delimiter=" "
+        )
 
         dkeys = gtsam.DiscreteKeys()
         for i in range(discrete_keys.size()):
@@ -387,7 +403,8 @@ class Experiment:
                 dkeys.push_back((key, cardinality))
         fixed_values_str = " ".join(
             f"{gtsam.DefaultKeyFormatter(k)}:{v}"
-            for k, v in self.smoother_.fixedValues().items())
+            for k, v in self.smoother_.fixedValues().items()
+        )
 
         all_assignments = gtsam.cartesianProduct(dkeys)
 
@@ -413,13 +430,15 @@ class Experiment:
                 pose = result.atPose2(X(i))
                 poses[i] = np.asarray((pose.x(), pose.y(), pose.theta()))
 
-            assignment_string = " ".join([
-                f"{gtsam.DefaultKeyFormatter(k)}={v}"
-                for k, v in assignment.items()
-            ])
+            assignment_string = " ".join(
+                [f"{gtsam.DefaultKeyFormatter(k)}={v}" for k, v in assignment.items()]
+            )
 
-            conditional = self.smoother_.hybridBayesNet().at(
-                self.smoother_.hybridBayesNet().size() - 1).asDiscrete()
+            conditional = (
+                self.smoother_.hybridBayesNet()
+                .at(self.smoother_.hybridBayesNet().size() - 1)
+                .asDiscrete()
+            )
             discrete_values = self.smoother_.fixedValues()
             for k, v in assignment.items():
                 discrete_values[k] = v
@@ -431,11 +450,13 @@ class Experiment:
 
             all_results.append((poses, assignment_string, probability))
 
-        plot_all_results(gt,
-                         all_results,
-                         iters=num_iters,
-                         text=fixed_values_str,
-                         filename=f"city10000_results_{num_iters}.svg")
+        plot_all_results(
+            gt,
+            all_results,
+            iters=num_iters,
+            text=fixed_values_str,
+            filename=f"city10000_results_{num_iters}.svg",
+        )
 
     def save_results(self, result, final_key, time_list):
         """Save results to file."""
@@ -454,22 +475,17 @@ class Experiment:
             num_poses (int): The number of poses to write to the file.
             filename (str): The file name to save the result to.
         """
-        with open(filename, 'w') as outfile:
-
+        with open(filename, "w") as outfile:
             for i in range(num_poses):
                 out_pose = result.atPose2(X(i))
-                outfile.write(
-                    f"{out_pose.x()} {out_pose.y()} {out_pose.theta()}\n")
+                outfile.write(f"{out_pose.x()} {out_pose.y()} {out_pose.theta()}\n")
 
         print(f"Output written to {filename}")
 
-    def write_timing_info(self,
-                          time_list,
-                          time_filename="Hybrid_City10000_time.txt"):
+    def write_timing_info(self, time_list, time_filename="Hybrid_City10000_time.txt"):
         """Log all the timing information to a file"""
 
-        with open(time_filename, 'w') as out_file_time:
-
+        with open(time_filename, "w") as out_file_time:
             for acc_time in time_list:
                 out_file_time.write(f"{acc_time}\n")
 
@@ -480,11 +496,13 @@ def main():
     """Main runner"""
     args = parse_arguments()
 
-    experiment = Experiment(gtsam.findExampleDataFile(args.data_file),
-                            max_loop_count=args.max_loop_count,
-                            update_frequency=args.update_frequency,
-                            max_num_hypotheses=args.max_num_hypotheses,
-                            plot_hypotheses=args.plot_hypotheses)
+    experiment = Experiment(
+        gtsam.findExampleDataFile(args.data_file),
+        max_loop_count=args.max_loop_count,
+        update_frequency=args.update_frequency,
+        max_num_hypotheses=args.max_num_hypotheses,
+        plot_hypotheses=args.plot_hypotheses,
+    )
     experiment.run()
 
 

@@ -29,11 +29,13 @@ def get_between_factor(mus, sigmas):
 def plot_probability(mus, sigmas, x, errors, show=False):
     """Plot each error value in neg-exp form to show probability"""
     for i, s in enumerate(sigmas):
-        plt.fill(x,
-                 np.exp(-errors[i]),
-                 "-",
-                 label=f"$\mu_{i}={mus[i]}, \sigma_{i}={s}$",
-                 alpha=0.5)
+        plt.fill(
+            x,
+            np.exp(-errors[i]),
+            "-",
+            label=f"$\mu_{i}={mus[i]}, \sigma_{i}={s}$",
+            alpha=0.5,
+        )
         plt.xlabel("$x = x_{t+1} - x_t$")
         plt.ylabel("p(x)")
 
@@ -47,7 +49,9 @@ def plot_probability(mus, sigmas, x, errors, show=False):
 def plot_loss(mus, sigmas, x, errors, show=False):
     """Plot the loss landscape for each sigma"""
     for i, s in enumerate(sigmas):
-        plt.plot(x, errors[i], "-", label=f"$\mu_{i}={mus[i]}, \sigma_{i}={s}$", alpha=0.5)
+        plt.plot(
+            x, errors[i], "-", label=f"$\mu_{i}={mus[i]}, \sigma_{i}={s}$", alpha=0.5
+        )
         plt.xlabel("$x = x_{t+1} - x_t$")
         plt.ylabel("error")
 
