@@ -212,7 +212,7 @@ class BaseEstimator:
 
         result.insert_or_assign(self.initial_.retract(delta.continuous()))
 
-        print(f"Final error: {self.smoother_.hybridBayesNet().error(delta)}")
+        print(f"Final error: {self.smoother_.error(delta)}")
 
         end_time = time.time()
         total_time = end_time - start_time

@@ -232,8 +232,7 @@ class DCSAMEstimator(BaseEstimator):
 
         result.insert_or_assign(estimates.nonlinear())
 
-        # TODO
-        # print(f"Final error: {self.smoother_.hybridBayesNet().error(result)}")
+        print(f"Final error: {self.smoother_.error(estimates.continuous())}")
 
         end_time = time.time()
         total_time = end_time - start_time

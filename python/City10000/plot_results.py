@@ -7,6 +7,7 @@ Usage:
 python python/City10000/plot_results.py ISAM2_GT_city10000.txt \
     --estimates results/ISAM2_city10000.txt \
         results/DCSAM_City10000.txt \
+        results/MH_ISAM2/MH_ISAM2_City10000.txt \
         results/Hybrid_City10000.txt
 ```
 
@@ -39,7 +40,7 @@ def parse_args():
         "--labels",
         nargs="+",
         help="Label to apply to the estimate graph.",
-        default=("ISAM2", "DCSAM", "Hybrid Factor Graphs"),
+        default=("ISAM2", "DCSAM", "MH-iSAM2", "Hybrid Factor Graphs"),
     )
     parser.add_argument(
         "--colors",
@@ -47,6 +48,7 @@ def parse_args():
         help="The color to apply to each of the estimate graphs.",
         default=(
             (0.9, 0.1, 0.1, 0.4),
+            (0.3, 0.3, 0.6, 0.4),
             (0.3, 0.3, 0.6, 0.4),
             (0.1, 0.1, 0.9, 0.4),
         ),
