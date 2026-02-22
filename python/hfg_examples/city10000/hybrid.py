@@ -7,23 +7,17 @@ Author: Varun Agrawal
 import time
 from pathlib import Path
 
-import gtsam
-import numpy as np
 from gtsam import (
     BetweenFactorPose2,
     HybridSmoother,
-    Pose2,
-    PriorFactorPose2,
-    Values,
 )
 from gtsam.symbol_shorthand import L, M, X
-from hfg_examples.city10000.plot import plot_results
 
-from hfg_examples.city10000 import BaseEstimator
+from .estimator import BaseEstimator
 
 
 class HybridEstimator(BaseEstimator):
-    """A estimator using our developed Hybrid Factor Graphs and a Hybrid Smoother."""
+    """An estimator using our developed Hybrid Factor Graphs and a Hybrid Smoother."""
 
     def __init__(
         self,
@@ -65,146 +59,192 @@ class HybridEstimator(BaseEstimator):
         print(f"================= Re-Initialize: {self.smoother_.allFactors().size()}")
         before_update = time.time()
         self.smoother_.relinearize()
-        self.initial_ = self.smoother_.linearizationPoint()
+        self.initial_.insert_or_assign(self.smoother_.linearizationPoint())
         after_update = time.time()
         print(f"Took {after_update - before_update} seconds.")
         return after_update - before_update
 
-    def run(self):
-        """Run the main experiment with a given num_timesteps."""
-        # Initialize local variables
-        discrete_count = 0
-        index = 0
-        loop_count = 0
-        update_count = 0
+    def add_odometry_factor(
+        self,
+        key_s,
+        key_t,
+        odom_pose,
+        pose_array,
+        discrete_count,
+        number_of_hybrid_factors,
+    ) -> tuple[int, int]:
+        """Add odometry factor, which can be a hybrid factor if there are multiple measurements."""
+        # Get the number of odometry measurements
+        num_measurements = len(pose_array)
 
-        time_list = []  # list[(int, float)]
+        if num_measurements > 1:
+            # Add hybrid factor
+            m = (M(discrete_count), num_measurements)
+            mixture_factor = self.hybrid_odometry_factor(key_s, key_t, m, pose_array)
+            self.new_factors_.push_back(mixture_factor)
 
-        # Set up initial prior
-        priorPose = Pose2(0, 0, 0)
-        self.initial_.insert(X(0), priorPose)
-        self.new_factors_.push_back(
-            PriorFactorPose2(X(0), priorPose, self.noise_models_.prior_noise_model)
-        )
+            self.discrete_cardinalities_[M(discrete_count)] = num_measurements
 
-        # Initial update
-        update_time = self.smoother_update()
-        smoother_update_times = []  # list[(int, float)]
-        smoother_update_times.append((index, update_time))
+            discrete_count += 1
+            number_of_hybrid_factors += 1
+            print(f"mixture_factor: {key_s} {key_t}")
 
-        # Flag to decide whether to run smoother update
-        number_of_hybrid_factors = 0
-
-        # Start main loop
-        result = Values()
-        start_time = time.time()
-
-        while index < self.num_timesteps:
-            pose_array, keys, is_ambiguous_loop = self.dataset_.next()
-            if pose_array is None:
-                break
-            key_s = keys[0]
-            key_t = keys[1]
-
-            num_measurements = len(pose_array)
-
-            # Take the first one as the initial estimate
-            odom_pose = pose_array[0]
-
-            if key_s == key_t - 1:
-                # Odometry factor
-                if num_measurements > 1:
-                    # Add hybrid factor
-                    m = (M(discrete_count), num_measurements)
-                    mixture_factor = self.hybrid_odometry_factor(
-                        key_s, key_t, m, pose_array
-                    )
-                    self.new_factors_.push_back(mixture_factor)
-
-                    discrete_count += 1
-                    number_of_hybrid_factors += 1
-                    print(f"mixture_factor: {key_s} {key_t}")
-                else:
-                    self.new_factors_.push_back(
-                        BetweenFactorPose2(
-                            X(key_s),
-                            X(key_t),
-                            odom_pose,
-                            self.noise_models_.pose_noise_model,
-                        )
-                    )
-
-                # Insert next pose initial guess
-                self.initial_.insert(
-                    X(key_t), self.initial_.atPose2(X(key_s)) * odom_pose
+        else:
+            self.new_factors_.push_back(
+                BetweenFactorPose2(
+                    X(key_s),
+                    X(key_t),
+                    odom_pose,
+                    self.noise_models_.pose_noise_model,
                 )
+            )
 
-            else:
-                # Loop closure
-                if is_ambiguous_loop:
-                    loop_factor = self.hybrid_loop_closure_factor(
-                        loop_count, key_s, key_t, odom_pose
-                    )
+        # Insert next pose initial guess
+        self.initial_.insert(X(key_t), self.initial_.atPose2(X(key_s)) * odom_pose)
 
-                else:
-                    loop_factor = BetweenFactorPose2(
-                        X(key_s),
-                        X(key_t),
-                        odom_pose,
-                        self.noise_models_.pose_noise_model,
-                    )
+        return number_of_hybrid_factors, discrete_count
 
-                # print loop closure event keys:
-                print(f"Loop closure: {key_s} {key_t}")
-                self.new_factors_.push_back(loop_factor)
-                number_of_hybrid_factors += 1
-                loop_count += 1
+    def add_loop_closure_factor(
+        self,
+        key_s,
+        key_t,
+        odom_pose,
+        is_ambiguous_loop,
+        loop_count,
+        number_of_hybrid_factors,
+    ) -> tuple[int, int]:
+        """Add loop closure factor, which can be a hybrid factor if the loop is ambiguous."""
+        if is_ambiguous_loop:
+            loop_factor = self.hybrid_loop_closure_factor(
+                loop_count, key_s, key_t, odom_pose
+            )
 
-            if number_of_hybrid_factors >= self.update_frequency:
-                update_time = self.smoother_update()
-                smoother_update_times.append((index, update_time))
-                number_of_hybrid_factors = 0
-                update_count += 1
+            self.discrete_cardinalities_[L(loop_count)] = 2
 
-                if update_count % self.relinearization_frequency == 0:
-                    self.reinitialize()
+        else:
+            loop_factor = BetweenFactorPose2(
+                X(key_s),
+                X(key_t),
+                odom_pose,
+                self.noise_models_.pose_noise_model,
+            )
 
-            #  Record timing for odometry edges only
-            if key_s == key_t - 1:
-                cur_time = time.time()
-                time_list.append(cur_time - start_time)
+        # print loop closure event keys:
+        print(f"Loop closure: {key_s} {key_t}")
+        self.new_factors_.push_back(loop_factor)
 
-            # Print some status every 100 steps
-            if index % 100 == 0:
-                print(f"Index: {index}")
+        loop_count += 1
 
-                if len(time_list) != 0:
-                    print(f"Accumulate time: {time_list[-1]} seconds")
+        # Increment number of hybrid factors so we run more smoother updates.
+        number_of_hybrid_factors += 1
 
-            index += 1
+        return number_of_hybrid_factors, loop_count
 
-        # Final update
-        update_time = self.smoother_update()
-        smoother_update_times.append((index, update_time))
+    # def run(self):
+    #     """Run the main experiment with a given num_timesteps."""
+    #     # Initialize local variables
+    #     discrete_count = 0
+    #     index = 0
+    #     loop_count = 0
+    #     update_count = 0
 
-        # Final optimize
-        delta = self.smoother_.optimize()
+    #     time_list = []  # list[(int, float)]
 
-        result.insert_or_assign(self.initial_.retract(delta.continuous()))
+    #     # Set up initial prior
+    #     priorPose = Pose2(0, 0, 0)
+    #     self.initial_.insert(X(0), priorPose)
+    #     self.new_factors_.push_back(
+    #         PriorFactorPose2(X(0), priorPose, self.noise_models_.prior_noise_model)
+    #     )
 
-        print(f"Final error: {self.smoother_.hybridBayesNet().error(delta)}")
+    #     # Initial update
+    #     update_time = self.smoother_update()
+    #     smoother_update_times = []  # list[(int, float)]
+    #     smoother_update_times.append((index, update_time))
 
-        end_time = time.time()
-        total_time = end_time - start_time
-        print(f"Total time: {total_time} seconds")
+    #     # Factor count which is used to decide whether to run smoother update
+    #     number_of_hybrid_factors = 0
 
-        self.save_results_and_timing(result, key_t + 1, time_list)
+    #     # Start main loop
+    #     result = Values()
+    #     start_time = time.time()
 
-        if self.plot_hypotheses:
-            # Get all the discrete values
-            discrete_keys = gtsam.DiscreteKeys()
-            for key in delta.discrete().keys():
-                # TODO Get cardinality from DiscreteFactor
-                discrete_keys.push_back((key, 2))
-            print("plotting all hypotheses")
-            self.plot_all_hypotheses(discrete_keys, key_t + 1, index)
+    #     while index < self.num_timesteps:
+    #         pose_array, keys, is_ambiguous_loop = self.dataset_.next()
+    #         if pose_array is None:
+    #             break
+    #         key_s = keys[0]
+    #         key_t = keys[1]
+
+    #         # Take the first one as the initial estimate
+    #         odom_pose = pose_array[0]
+
+    #         if key_s == key_t - 1:
+    #             number_of_hybrid_factors, discrete_count = self.add_odometry_factor(
+    #                 key_s,
+    #                 key_t,
+    #                 odom_pose,
+    #                 pose_array,
+    #                 discrete_count,
+    #                 number_of_hybrid_factors,
+    #             )
+
+    #         else:
+    #             number_of_hybrid_factors, loop_count = self.add_loop_closure_factor(
+    #                 key_s,
+    #                 key_t,
+    #                 odom_pose,
+    #                 is_ambiguous_loop,
+    #                 loop_count,
+    #                 number_of_hybrid_factors,
+    #             )
+
+    #         if number_of_hybrid_factors >= self.update_frequency:
+    #             update_time = self.smoother_update()
+    #             smoother_update_times.append((index, update_time))
+    #             number_of_hybrid_factors = 0
+    #             update_count += 1
+
+    #             if update_count % self.relinearization_frequency == 0:
+    #                 self.reinitialize()
+
+    #         #  Record timing for odometry edges only
+    #         if key_s == key_t - 1:
+    #             cur_time = time.time()
+    #             time_list.append(cur_time - start_time)
+
+    #         # Print some status every 100 steps
+    #         if index % 100 == 0:
+    #             print(f"Index: {index}")
+
+    #             if len(time_list) != 0:
+    #                 print(f"Accumulate time: {time_list[-1]} seconds")
+
+    #         index += 1
+
+    #     # Final update
+    #     update_time = self.smoother_update()
+    #     smoother_update_times.append((index, update_time))
+
+    #     # Final optimize
+    #     delta = self.smoother_.optimize()
+
+    #     result.insert_or_assign(self.initial_.retract(delta.continuous()))
+
+    #     print(f"Final error: {self.smoother_.hybridBayesNet().error(delta)}")
+
+    #     end_time = time.time()
+    #     total_time = end_time - start_time
+    #     print(f"Total time: {total_time} seconds")
+
+    #     self.save_results_and_timing(result, key_t + 1, time_list)
+
+    #     if self.plot_hypotheses:
+    #         # Get all the discrete values
+    #         discrete_keys = gtsam.DiscreteKeys()
+
+    #         for key in delta.discrete().keys():
+    #             discrete_keys.push_back((key, self.discrete_cardinalities_[key]))
+
+    #         print("plotting all hypotheses")
+    #         self.plot_all_hypotheses(discrete_keys, key_t + 1, index)

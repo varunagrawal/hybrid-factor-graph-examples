@@ -17,7 +17,7 @@ from gtsam import (
     PriorFactorPose2,
     Values,
 )
-from gtsam.symbol_shorthand import L, M, X
+from gtsam.symbol_shorthand import L, X
 from hfg_examples.city10000.plot import plot_results
 
 from hfg_examples.city10000 import dataset
@@ -42,6 +42,9 @@ class BaseEstimator:
 
         self.new_factors_ = HybridNonlinearFactorGraph()
         self.initial_ = Values()
+
+        # A simple dict to map discrete keys to their cardinalities, for later recovery.
+        self.discrete_cardinalities_ = {}
 
         self.plot_hypotheses = plot_hypotheses
         self.save_path_ = save_path
@@ -90,6 +93,34 @@ class BaseEstimator:
         """Perform smoother update and optimize the graph."""
         raise NotImplementedError("smoother_update must be implemented by subclass.")
 
+    def add_odometry_factor(
+        self,
+        key_s,
+        key_t,
+        odom_pose,
+        pose_array,
+        discrete_count,
+        number_of_hybrid_factors,
+    ):
+        """Add odometry factor, which can be a hybrid factor if there are multiple measurements."""
+        raise NotImplementedError(
+            "add_odometry_factor must be implemented by subclass."
+        )
+
+    def add_loop_closure_factor(
+        self,
+        key_s,
+        key_t,
+        odom_pose,
+        is_ambiguous_loop,
+        loop_count,
+        number_of_hybrid_factors,
+    ):
+        """Add loop closure factor, which can be a hybrid factor if the loop is ambiguous."""
+        raise NotImplementedError(
+            "add_loop_closure_factor must be implemented by subclass."
+        )
+
     def run(self):
         """Run the main experiment with a given num_timesteps."""
         # Initialize local variables
@@ -112,7 +143,7 @@ class BaseEstimator:
         smoother_update_times = []  # list[(int, float)]
         smoother_update_times.append((index, update_time))
 
-        # Flag to decide whether to run smoother update
+        # Factor count which is used to decide whether to run smoother update
         number_of_hybrid_factors = 0
 
         # Start main loop
@@ -126,57 +157,28 @@ class BaseEstimator:
             key_s = keys[0]
             key_t = keys[1]
 
-            num_measurements = len(pose_array)
-
             # Take the first one as the initial estimate
             odom_pose = pose_array[0]
+
             if key_s == key_t - 1:
-                # Odometry factor
-                if num_measurements > 1:
-                    # Add hybrid factor
-                    m = (M(discrete_count), num_measurements)
-                    mixture_factor = self.hybrid_odometry_factor(
-                        key_s, key_t, m, pose_array
-                    )
-                    self.new_factors_.push_back(mixture_factor)
-
-                    discrete_count += 1
-                    number_of_hybrid_factors += 1
-                    print(f"mixture_factor: {key_s} {key_t}")
-                else:
-                    self.new_factors_.push_back(
-                        BetweenFactorPose2(
-                            X(key_s),
-                            X(key_t),
-                            odom_pose,
-                            self.noise_models_.pose_noise_model,
-                        )
-                    )
-
-                # Insert next pose initial guess
-                self.initial_.insert(
-                    X(key_t), self.initial_.atPose2(X(key_s)) * odom_pose
+                number_of_hybrid_factors, discrete_count = self.add_odometry_factor(
+                    key_s,
+                    key_t,
+                    odom_pose,
+                    pose_array,
+                    discrete_count,
+                    number_of_hybrid_factors,
                 )
+
             else:
-                # Loop closure
-                if is_ambiguous_loop:
-                    loop_factor = self.hybrid_loop_closure_factor(
-                        loop_count, key_s, key_t, odom_pose
-                    )
-
-                else:
-                    loop_factor = BetweenFactorPose2(
-                        X(key_s),
-                        X(key_t),
-                        odom_pose,
-                        self.noise_models_.pose_noise_model,
-                    )
-
-                # print loop closure event keys:
-                print(f"Loop closure: {key_s} {key_t}")
-                self.new_factors_.push_back(loop_factor)
-                number_of_hybrid_factors += 1
-                loop_count += 1
+                number_of_hybrid_factors, loop_count = self.add_loop_closure_factor(
+                    key_s,
+                    key_t,
+                    odom_pose,
+                    is_ambiguous_loop,
+                    loop_count,
+                    number_of_hybrid_factors,
+                )
 
             if number_of_hybrid_factors >= self.update_frequency:
                 update_time = self.smoother_update()
@@ -221,9 +223,10 @@ class BaseEstimator:
         if self.plot_hypotheses:
             # Get all the discrete values
             discrete_keys = gtsam.DiscreteKeys()
+
             for key in delta.discrete().keys():
-                # TODO Get cardinality from DiscreteFactor
-                discrete_keys.push_back((key, 2))
+                discrete_keys.push_back((key, self.discrete_cardinalities_[key]))
+
             print("plotting all hypotheses")
             self.plot_all_hypotheses(discrete_keys, key_t + 1, index)
 
