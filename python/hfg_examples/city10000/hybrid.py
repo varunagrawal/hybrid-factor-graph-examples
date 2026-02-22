@@ -29,11 +29,11 @@ class HybridEstimator:
     def __init__(
         self,
         filename: str,
-        marginal_threshold: float = 0.9999,
-        max_loop_count: int = 150,
-        update_frequency: int = 3,
+        max_loop_count: int = 10000,
+        update_frequency: int = 4,
         max_num_hypotheses: int = 10,
-        relinearization_frequency: int = 10,
+        relinearization_frequency: int = 6,
+        marginal_threshold: float = 0.9999,
         plot_hypotheses: bool = False,
     ):
         self.dataset_ = dataset.City10000Dataset(filename)
