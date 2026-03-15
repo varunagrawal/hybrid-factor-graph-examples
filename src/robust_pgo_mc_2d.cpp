@@ -14,30 +14,7 @@
 #include <random>
 
 #include "pgo_utils.h"
-
-/// Build a vector of components factors (inlier model, outlier model), 2D
-/// version
-std::vector<gtsam::NonlinearFactorValuePair> get_factor_components(
-    const std::shared_ptr<gtsam::BetweenFactor<gtsam::Pose2>>& bwFactor,
-    const gtsam::SharedNoiseModel inlier_model,
-    const gtsam::noiseModel::Diagonal::shared_ptr& outlier_model) {
-  auto keys = bwFactor->keys();
-
-  std::vector<gtsam::NonlinearFactorValuePair> components;
-
-  double negLogConstant = 0.0;
-  if (auto gaussian = std::dynamic_pointer_cast<gtsam::noiseModel::Gaussian>(
-          inlier_model)) {
-    negLogConstant = gaussian->negLogConstant();
-  }
-  components.push_back({bwFactor, negLogConstant});
-
-  auto outlier_factor = std::make_shared<gtsam::BetweenFactor<gtsam::Pose2>>(
-      keys[0], keys[1], bwFactor->measured(), outlier_model);
-  components.push_back({outlier_factor, outlier_model->negLogConstant()});
-
-  return components;
-}
+#include "robust_pgo.h"
 
 /**
  * graph - the uncorrupted factor graph
@@ -71,9 +48,6 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
   double outlier_prob = 0.5;
   std::vector<double> lc_probabilities{(1.0 - outlier_prob), outlier_prob};
-
-  // double outlier_prob = 0.5;
-  // std::vector<double> lc_probabilities{(1.0 - outlier_prob), outlier_prob};
 
   // We'll use this to save the inlier model so we can create the inlier
   // hypotheses.
@@ -111,7 +85,7 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
       // Build a vector of components factors (inlier model, outlier model)
       auto components =
-          get_factor_components(bwFactor, inlier_model, outlierModel);
+          get_factor_components_2d(bwFactor, inlier_model, outlierModel);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).
@@ -151,10 +125,14 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
   // Cast is kosher since we know outlier_pct >= 0 and num_original_lc is
   // of type size_t.
   size_t num_outliers =
-      (size_t)((outlier_pct / (1.0 - outlier_pct)) * num_original_lc);
+      (size_t)(num_original_lc * outlier_pct / (1.0 - outlier_pct));
+  std::cout << "num noriginal loop closures: " << num_original_lc << std::endl;
+  std::cout << "num outliers: " << num_outliers << std::endl;
 
   gtsam::NonlinearFactorGraph outlierGraph = generateRandomLoopClosures(
       graph.keyVector(), num_outliers, inlier_model, false, random_seed);
+
+  std::cout << "outlier graph size: " << outlierGraph.size() << std::endl;
 
   // Add all outlier measurements.
   for (const auto& factor : outlierGraph) {
@@ -175,7 +153,7 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
       // Build a vector of components factors (inlier model, outlier model)
       auto components =
-          get_factor_components(bwFactor, inlier_model, outlierModel);
+          get_factor_components_2d(bwFactor, inlier_model, outlierModel);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).

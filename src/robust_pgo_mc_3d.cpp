@@ -14,29 +14,7 @@
 #include <random>
 
 #include "pgo_utils.h"
-
-/// Build a vector of components factors (inlier model, outlier model)
-std::vector<gtsam::NonlinearFactorValuePair> get_factor_components(
-    const std::shared_ptr<gtsam::BetweenFactor<gtsam::Pose3>>& bwFactor,
-    const gtsam::SharedNoiseModel inlier_model,
-    const gtsam::noiseModel::Diagonal::shared_ptr& outlier_model) {
-  auto keys = bwFactor->keys();
-
-  std::vector<gtsam::NonlinearFactorValuePair> components;
-
-  double negLogConstant = 0.0;
-  if (auto gaussian = std::dynamic_pointer_cast<gtsam::noiseModel::Gaussian>(
-          inlier_model)) {
-    negLogConstant = gaussian->negLogConstant();
-  }
-  components.push_back({bwFactor, negLogConstant});
-
-  auto outlier_factor = std::make_shared<gtsam::BetweenFactor<gtsam::Pose3>>(
-      keys[0], keys[1], bwFactor->measured(), outlier_model);
-  components.push_back({outlier_factor, outlier_model->negLogConstant()});
-
-  return components;
-}
+#include "robust_pgo.h"
 
 /**
  * graph - the uncorrupted factor graph
@@ -107,7 +85,7 @@ void run_experiment3D(const gtsam::NonlinearFactorGraph& graph,
           gtsam::noiseModel::Diagonal::Sigmas(outlier_sigmas);
 
       auto components =
-          get_factor_components(bwFactor, inlier_model, outlierModel);
+          get_factor_components_3d(bwFactor, inlier_model, outlierModel);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).
@@ -171,7 +149,7 @@ void run_experiment3D(const gtsam::NonlinearFactorGraph& graph,
 
       // Build a vector of components factors (inlier model, outlier model)
       auto components =
-          get_factor_components(bwFactor, inlier_model, outlierModel);
+          get_factor_components_3d(bwFactor, inlier_model, outlierModel);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).
