@@ -18,6 +18,8 @@
 #include "pgo_utils.h"
 #include "robust_pgo.h"
 
+const bool DEBUG = false;
+
 /// @brief Re-linearize, solve ALL, and re-initialize smoother.
 clock_t reInitialize(gtsam::HybridSmoother& smoother,
                      gtsam::HybridNonlinearFactorGraph& allFactors,
@@ -124,8 +126,13 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
 
       k++;
 
+      if (DEBUG) {
+        std::cout << "num factors = " << hfg.size() << "  ||  "
+                  << "numberOfHybridFactors = " << numberOfHybridFactors
+                  << "  ||  " << std::endl;
+      }
+
       if (numberOfHybridFactors >= updateFrequency) {
-        hfg.print();
         smoother.update(hfg, initial_values, maxNrHypotheses);
         numberOfHybridFactors = 0;
         updateCount++;
@@ -208,8 +215,6 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       k++;
 
       if (numberOfHybridFactors >= updateFrequency) {
-        // std::cout << "numberOfHybridFactors: " << numberOfHybridFactors << std::endl;
-        // std::cout << "running update @" << k << std::endl;
         smoother.update(hfg, initial_values, maxNrHypotheses, 0.99);
         numberOfHybridFactors = 0;
         updateCount++;
