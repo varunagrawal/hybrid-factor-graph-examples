@@ -218,7 +218,7 @@ class BaseEstimator:
         total_time = end_time - start_time
         print(f"Total time: {total_time} seconds")
 
-        self.save_results_and_timing(result, key_t + 1, time_list)
+        self.save_results_and_timing(result, key_t + 1, time_list, self.num_timesteps)
 
         if self.plot_hypotheses:
             # Get all the discrete values
@@ -302,11 +302,11 @@ class BaseEstimator:
             filename=f"city10000_results_{num_iters}.svg",
         )
 
-    def save_results_and_timing(self, result, final_key, time_list):
+    def save_results_and_timing(self, result, final_key, time_list, num_timesteps):
         """Save results to file."""
         # Write results to file
         self.write_result(
-            result, final_key, filename=self.save_path_ / f"{self.name}_City10000.txt"
+            result, final_key, filename=self.save_path_ / f"{self.name}_City10000_{num_timesteps}.txt"
         )
 
         # Write timing info to file
