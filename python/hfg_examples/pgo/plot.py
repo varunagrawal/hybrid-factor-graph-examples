@@ -174,40 +174,6 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
     return all_data
 
 
-def main():
-    """Main runner."""
-
-    if len(sys.argv) < 3:
-        print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
-        sys.exit()
-
-    dataset_name = sys.argv[1]
-    is3D = int(sys.argv[2]) > 0
-    prefix_path = f"../output/robust_pgo_vanilla/{dataset_name}/"
-
-    all_data = collect_data(
-        prefix_path=prefix_path,
-        is3D=is3D,
-        outlier_pcts=(10, 20),
-    )
-
-    sns.set_style("white")
-    # sns.set_palette("bright")
-    # pal = "bright"
-
-    colors = ["red", "green", "blue"]
-    labels = ["Ours", "GNC", "LM"]
-    lines = [
-        Line2D([0], [0], color=colors[0], lw=1),
-        Line2D([0], [0], color=colors[1], lw=1),
-        Line2D([0], [0], color=colors[2], lw=1),
-    ]
-
-    # plot_times(dataset_name, all_data, labels, lines, colors)
-    plot_average_translation_error(dataset_name, all_data, labels, lines, colors)
-    plot_average_rotation_error(dataset_name, all_data, labels, lines, colors)
-
-
 def plot_times(dataset_name, all_data, custom_labels, custom_lines, colors):
     fig, ax = plt.subplots(1)
     sns.boxplot(
@@ -267,6 +233,36 @@ def plot_average_rotation_error(
 
     plt.savefig(f"{dataset_name}_rot.png", dpi=600, bbox_inches="tight")
     plt.show()
+
+
+def main():
+    """Main runner."""
+
+    if len(sys.argv) < 3:
+        print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
+        sys.exit()
+
+    dataset_name = sys.argv[1]
+    is3D = int(sys.argv[2]) > 0
+    prefix_path = f"../output/robust_pgo_vanilla/{dataset_name}/"
+
+    all_data = collect_data(
+        prefix_path=prefix_path,
+        is3D=is3D,
+        outlier_pcts=(10, 20),
+    )
+
+    sns.set_style("white")
+    # sns.set_palette("bright")
+    # pal = "bright"
+
+    colors = ["red", "green", "blue"]
+    labels = ["Ours", "GNC", "LM"]
+    lines = [Line2D([0], [0], color=color, lw=1) for color in colors]
+
+    # plot_times(dataset_name, all_data, labels, lines, colors)
+    plot_average_translation_error(dataset_name, all_data, labels, lines, colors)
+    plot_average_rotation_error(dataset_name, all_data, labels, lines, colors)
 
 
 if __name__ == "__main__":
