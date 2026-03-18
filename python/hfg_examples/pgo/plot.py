@@ -30,7 +30,9 @@ def parse_times(fname):
     return dcsam_time, gnc_time, lm_time
 
 
-if __name__ == "__main__":
+def main():
+    """Main runner."""
+
     if len(sys.argv) < 3:
         print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
         sys.exit()
@@ -55,7 +57,7 @@ if __name__ == "__main__":
     all_data = pd.DataFrame(
         columns=[
             "Method",
-            "Outlier Rate (%%)",
+            "Outlier Rate (\\%)",
             "Time (s)",
             "Average Translation Error (m)",
             "Average Rotation Error (deg)",
@@ -139,7 +141,7 @@ if __name__ == "__main__":
     pal = "bright"
     fig, ax = plt.subplots(1)
     sns.boxplot(
-        x="Outlier Rate (%%)",
+        x="Outlier Rate (\\%)",
         y="Time (s)",
         hue="Method",
         data=all_data,
@@ -213,7 +215,7 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(1)
     sns.boxplot(
-        x="Outlier Rate (%%)",
+        x="Outlier Rate (\\%)",
         y="Average Translation Error (m)",
         hue="Method",
         data=all_data,
@@ -286,7 +288,7 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(1)
     sns.boxplot(
-        x="Outlier Rate (%%)",
+        x="Outlier Rate (\\%)",
         y="Average Rotation Error (deg)",
         hue="Method",
         data=all_data,
@@ -357,3 +359,7 @@ if __name__ == "__main__":
 
     plt.savefig(f"{dataset_name}_rot.png", dpi=600, bbox_inches="tight")
     plt.show()
+
+
+if __name__ == "__main__":
+    main()
