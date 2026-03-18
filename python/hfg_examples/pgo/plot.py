@@ -82,30 +82,18 @@ def customize_plot(ax):
     return ax
 
 
-def main():
-    """Main runner."""
-
-    if len(sys.argv) < 3:
-        print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
-        sys.exit()
-
-    dataset_name = sys.argv[1]
-    is3D = 1 if (int(sys.argv[2]) > 0) else 0
-    prefix_path = f"../output/robust_pgo_vanilla/{dataset_name}/"
-    # prefix_path = f"../output_backup/{dataset_name}/"
+def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
+    """Collect the data to plot from the different .g2o files."""
+    gt_graph, gt_vals = gtsam.readG2o(prefix_path + "0/1/out_nonrobust.g2o", is3D)
 
     dcsam_ate_tran = {}
     dcsam_ate_rot = {}
-    dcsam_times = {}
 
     gnc_ate_tran = {}
     gnc_ate_rot = {}
-    gnc_times = {}
 
     lm_ate_tran = {}
     lm_ate_rot = {}
-    lm_times = {}
-    gt_graph, gt_vals = gtsam.readG2o(prefix_path + "0/1/out_nonrobust.g2o", is3D)
 
     all_data = pd.DataFrame(
         columns=[
@@ -117,18 +105,16 @@ def main():
         ]
     )
 
-    for outlier_pct in [10, 20, 30, 40]:  # [10, 20, 30, 40, 50, 60, 70, 80]:
+    for outlier_pct in outlier_pcts:  # [10, 20, 30, 40, 50, 60, 70, 80]:
         dcsam_ate_tran[outlier_pct] = []
         dcsam_ate_rot[outlier_pct] = []
-        dcsam_times[outlier_pct] = []
 
         gnc_ate_tran[outlier_pct] = []
         gnc_ate_rot[outlier_pct] = []
-        gnc_times[outlier_pct] = []
 
         lm_ate_tran[outlier_pct] = []
         lm_ate_rot[outlier_pct] = []
-        lm_times[outlier_pct] = []
+
         for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
             # DCSAM Processing
             dcsam_graph, dcsam_est = gtsam.readG2o(
@@ -168,7 +154,6 @@ def main():
                 dcsam_tran,
                 dcsam_rot,
             ]
-            dcsam_times[outlier_pct].append(dcsam_time)
 
             all_data.loc[len(all_data.index)] = [
                 "GNC",
@@ -177,7 +162,6 @@ def main():
                 gnc_tran,
                 gnc_rot,
             ]
-            gnc_times[outlier_pct].append(gnc_time)
 
             all_data.loc[len(all_data.index)] = [
                 "LM",
@@ -186,14 +170,32 @@ def main():
                 lm_tran,
                 lm_rot,
             ]
-            lm_times[outlier_pct].append(lm_time)
+
+    return all_data
+
+
+def main():
+    """Main runner."""
+
+    if len(sys.argv) < 3:
+        print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
+        sys.exit()
+
+    dataset_name = sys.argv[1]
+    is3D = int(sys.argv[2]) > 0
+    prefix_path = f"../output/robust_pgo_vanilla/{dataset_name}/"
+
+    all_data = collect_data(
+        prefix_path=prefix_path,
+        is3D=is3D,
+        outlier_pcts=(10, 20),
+    )
 
     sns.set_style("white")
     # sns.set_palette("bright")
+    # pal = "bright"
+
     colors = ["red", "green", "blue"]
-
-    pal = "bright"
-
     labels = ["Ours", "GNC", "LM"]
     lines = [
         Line2D([0], [0], color=colors[0], lw=1),
