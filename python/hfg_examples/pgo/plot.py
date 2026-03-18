@@ -4,12 +4,12 @@ Functions to plot boxplots for PGO monte carlo results.
 
 import sys
 
-import g2o_ate
 import gtsam
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from g2o_ate import g2o_ate_rot, g2o_ate_tran
 from matplotlib.lines import Line2D
 
 plt.rcParams["text.usetex"] = True
@@ -80,8 +80,8 @@ def main():
             dcsam_graph, dcsam_est = gtsam.readG2o(
                 prefix_path + f"{outlier_pct}/{seed}/out_robust.g2o", is3D
             )
-            dcsam_tran = g2o_ate.g2o_ate_tran(dcsam_est, gt_vals, is3D)
-            dcsam_rot = g2o_ate.g2o_ate_rot(dcsam_est, gt_vals, is3D)
+            dcsam_tran = g2o_ate_tran(dcsam_est, gt_vals, is3D)
+            dcsam_rot = g2o_ate_rot(dcsam_est, gt_vals, is3D)
             dcsam_ate_tran[outlier_pct].append(dcsam_tran)
             dcsam_ate_rot[outlier_pct].append(dcsam_rot)
 
@@ -89,8 +89,8 @@ def main():
             gnc_graph, gnc_est = gtsam.readG2o(
                 prefix_path + f"{outlier_pct}/{seed}/out_gnc.g2o", is3D
             )
-            gnc_tran = g2o_ate.g2o_ate_tran(gnc_est, gt_vals, is3D)
-            gnc_rot = g2o_ate.g2o_ate_rot(gnc_est, gt_vals, is3D)
+            gnc_tran = g2o_ate_tran(gnc_est, gt_vals, is3D)
+            gnc_rot = g2o_ate_rot(gnc_est, gt_vals, is3D)
             gnc_ate_tran[outlier_pct].append(gnc_tran)
             gnc_ate_rot[outlier_pct].append(gnc_rot)
 
@@ -98,8 +98,8 @@ def main():
             lm_graph, lm_est = gtsam.readG2o(
                 prefix_path + f"{outlier_pct}/{seed}/out_nonrobust.g2o", is3D
             )
-            lm_tran = g2o_ate.g2o_ate_tran(lm_est, gt_vals, is3D)
-            lm_rot = g2o_ate.g2o_ate_rot(lm_est, gt_vals, is3D)
+            lm_tran = g2o_ate_tran(lm_est, gt_vals, is3D)
+            lm_rot = g2o_ate_rot(lm_est, gt_vals, is3D)
             lm_ate_tran[outlier_pct].append(lm_tran)
             lm_ate_rot[outlier_pct].append(lm_rot)
 
@@ -150,7 +150,7 @@ def main():
     )
     print(ax.patches)
     box_patches = [
-        patch for patch in ax.patches if type(patch) == matplotlib.patches.PathPatch
+        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
     ]
     if (
         len(box_patches) == 0
@@ -225,7 +225,7 @@ def main():
     print(ax.patches)
     # plt.yscale("log")
     box_patches = [
-        patch for patch in ax.patches if type(patch) == matplotlib.patches.PathPatch
+        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
     ]
     if (
         len(box_patches) == 0
@@ -298,7 +298,7 @@ def main():
     # plt.yscale("log")
     print(ax.patches)
     box_patches = [
-        patch for patch in ax.patches if type(patch) == matplotlib.patches.PathPatch
+        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
     ]
     if (
         len(box_patches) == 0
