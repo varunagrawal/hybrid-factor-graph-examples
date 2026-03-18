@@ -43,6 +43,45 @@ def get_box_patches(ax):
     return box_patches
 
 
+def customize_plot(ax):
+    """Customize the box plot lines and whiskers."""
+
+    box_patches = get_box_patches(ax)
+
+    num_patches = len(box_patches)
+    lines_per_boxplot = len(ax.lines) // num_patches
+    for i, patch in enumerate(box_patches):
+        # Set the linecolor on the patch to the facecolor, and set the facecolor to None
+        col = patch.get_facecolor()
+        patch.set_edgecolor(col)
+        patch.set_facecolor("None")
+
+        # Each box has associated Line2D objects (to make the whiskers, fliers, etc.)
+        # Loop over them here, and use the same color as above
+        for line in ax.lines[i * lines_per_boxplot : (i + 1) * lines_per_boxplot]:
+            line.set_color(col)
+            line.set_mfc(col)  # facecolor of fliers
+            line.set_mec(col)  # edgecolor of fliers
+
+    # # Also fix the legend
+    # for legpatch in ax.get_legend().get_patches():
+    #     col = legpatch.get_facecolor()
+    #     legpatch.set_edgecolor(col)
+    #     legpatch.set_facecolor('None')
+
+    # # iterate over boxes
+    # for i,box in enumerate(ax.artists):
+    #      box.set_edgecolor('black')
+    #      box.set_facecolor('white')
+
+    #      # iterate over whiskers and median lines
+    #      for j in range(6*i,6*(i+1)):
+    #          ax.lines[j].set_color('black')
+    #          plt.legend()
+
+    return ax
+
+
 def main():
     """Main runner."""
 
@@ -178,42 +217,10 @@ def plot_times(dataset_name, all_data, custom_labels, custom_lines, colors):
         ax=ax,
     )
 
-    box_patches = get_box_patches(ax)
-
-    num_patches = len(box_patches)
-    lines_per_boxplot = len(ax.lines) // num_patches
-    for i, patch in enumerate(box_patches):
-        # Set the linecolor on the patch to the facecolor, and set the facecolor to None
-        col = patch.get_facecolor()
-        patch.set_edgecolor(col)
-        patch.set_facecolor("None")
-
-        # Each box has associated Line2D objects (to make the whiskers, fliers, etc.)
-        # Loop over them here, and use the same color as above
-        for line in ax.lines[i * lines_per_boxplot : (i + 1) * lines_per_boxplot]:
-            line.set_color(col)
-            line.set_mfc(col)  # facecolor of fliers
-            line.set_mec(col)  # edgecolor of fliers
-
-    # # Also fix the legend
-    # for legpatch in ax.get_legend().get_patches():
-    #     col = legpatch.get_facecolor()
-    #     legpatch.set_edgecolor(col)
-    #     legpatch.set_facecolor('None')
-
-    # # iterate over boxes
-    # for i,box in enumerate(ax.artists):
-    #      box.set_edgecolor('black')
-    #      box.set_facecolor('white')
-
-    #      # iterate over whiskers and median lines
-    #      for j in range(6*i,6*(i+1)):
-    #          ax.lines[j].set_color('black')
-    #          plt.legend()
-
-    # cmap = sns.color_palette("hls", 8, as_cmap=True)
+    ax = customize_plot(ax)
 
     ax.legend(custom_lines, custom_labels)
+
     plt.savefig(f"{dataset_name}_times.png", dpi=600, bbox_inches="tight")
     plt.show()
 
@@ -231,40 +238,10 @@ def plot_average_translation_error(
         ax=ax,
     )
 
-    box_patches = get_box_patches(ax)
-
-    num_patches = len(box_patches)
-    lines_per_boxplot = len(ax.lines) // num_patches
-    for i, patch in enumerate(box_patches):
-        # Set the linecolor on the patch to the facecolor, and set the facecolor to None
-        col = patch.get_facecolor()
-        patch.set_edgecolor(col)
-        patch.set_facecolor("None")
-
-        # Each box has associated Line2D objects (to make the whiskers, fliers, etc.)
-        # Loop over them here, and use the same color as above
-        for line in ax.lines[i * lines_per_boxplot : (i + 1) * lines_per_boxplot]:
-            line.set_color(col)
-            line.set_mfc(col)  # facecolor of fliers
-            line.set_mec(col)  # edgecolor of fliers
-
-    # # Also fix the legend
-    # for legpatch in ax.get_legend().get_patches():
-    #     col = legpatch.get_facecolor()
-    #     legpatch.set_edgecolor(col)
-    #     legpatch.set_facecolor('None')
-
-    # # iterate over boxes
-    # for i,box in enumerate(ax.artists):
-    #      box.set_edgecolor('black')
-    #      box.set_facecolor('white')
-
-    #      # iterate over whiskers and median lines
-    #      for j in range(6*i,6*(i+1)):
-    #          ax.lines[j].set_color('black')
-    #          plt.legend()
+    ax = customize_plot(ax)
 
     ax.legend(custom_lines, custom_labels)
+
     plt.savefig(f"{dataset_name}_tran.png", dpi=600, bbox_inches="tight")
     plt.show()
 
@@ -282,38 +259,7 @@ def plot_average_rotation_error(
         ax=ax,
     )
 
-    box_patches = get_box_patches(ax)
-
-    num_patches = len(box_patches)
-    lines_per_boxplot = len(ax.lines) // num_patches
-    for i, patch in enumerate(box_patches):
-        # Set the linecolor on the patch to the facecolor, and set the facecolor to None
-        col = patch.get_facecolor()
-        patch.set_edgecolor(col)
-        patch.set_facecolor("None")
-
-        # Each box has associated Line2D objects (to make the whiskers, fliers, etc.)
-        # Loop over them here, and use the same color as above
-        for line in ax.lines[i * lines_per_boxplot : (i + 1) * lines_per_boxplot]:
-            line.set_color(col)
-            line.set_mfc(col)  # facecolor of fliers
-            line.set_mec(col)  # edgecolor of fliers
-
-    # # Also fix the legend
-    # for legpatch in ax.get_legend().get_patches():
-    #     col = legpatch.get_facecolor()
-    #     legpatch.set_edgecolor(col)
-    #     legpatch.set_facecolor('None')
-
-    # # iterate over boxes
-    # for i,box in enumerate(ax.artists):
-    #      box.set_edgecolor('black')
-    #      box.set_facecolor('white')
-
-    #      # iterate over whiskers and median lines
-    #      for j in range(6*i,6*(i+1)):
-    #          ax.lines[j].set_color('black')
-    #          plt.legend()
+    ax = customize_plot(ax)
 
     ax.legend(custom_lines, custom_labels)
 
