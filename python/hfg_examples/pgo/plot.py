@@ -30,6 +30,19 @@ def parse_times(fname):
     return dcsam_time, gnc_time, lm_time
 
 
+def get_box_patches(ax):
+    print(ax.patches)
+    # plt.yscale("log")
+    box_patches = [
+        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
+    ]
+    # In matplotlib older than 3.5, the boxes are stored in ax2.artists
+    if len(box_patches) == 0:
+        box_patches = ax.artists
+
+    return box_patches
+
+
 def main():
     """Main runner."""
 
@@ -54,6 +67,7 @@ def main():
     lm_ate_rot = {}
     lm_times = {}
     gt_graph, gt_vals = gtsam.readG2o(prefix_path + "0/1/out_nonrobust.g2o", is3D)
+
     all_data = pd.DataFrame(
         columns=[
             "Method",
@@ -63,6 +77,7 @@ def main():
             "Average Rotation Error (deg)",
         ]
     )
+
     for outlier_pct in [10, 20, 30, 40]:  # [10, 20, 30, 40, 50, 60, 70, 80]:
         dcsam_ate_tran[outlier_pct] = []
         dcsam_ate_rot[outlier_pct] = []
@@ -139,6 +154,20 @@ def main():
     colors = ["red", "green", "blue"]
 
     pal = "bright"
+
+    labels = ["Ours", "GNC", "LM"]
+    lines = [
+        Line2D([0], [0], color=colors[0], lw=1),
+        Line2D([0], [0], color=colors[1], lw=1),
+        Line2D([0], [0], color=colors[2], lw=1),
+    ]
+
+    # plot_times(dataset_name, all_data, labels, lines, colors)
+    plot_average_translation_error(dataset_name, all_data, labels, lines, colors)
+    plot_average_rotation_error(dataset_name, all_data, labels, lines, colors)
+
+
+def plot_times(dataset_name, all_data, custom_labels, custom_lines, colors):
     fig, ax = plt.subplots(1)
     sns.boxplot(
         x="Outlier Rate (\\%)",
@@ -148,14 +177,9 @@ def main():
         palette=colors,
         ax=ax,
     )
-    print(ax.patches)
-    box_patches = [
-        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
-    ]
-    if (
-        len(box_patches) == 0
-    ):  # in matplotlib older than 3.5, the boxes are stored in ax2.artists
-        box_patches = ax.artists
+
+    box_patches = get_box_patches(ax)
+
     num_patches = len(box_patches)
     lines_per_boxplot = len(ax.lines) // num_patches
     for i, patch in enumerate(box_patches):
@@ -170,21 +194,6 @@ def main():
             line.set_color(col)
             line.set_mfc(col)  # facecolor of fliers
             line.set_mec(col)  # edgecolor of fliers
-
-    # for i,artist in enumerate(ax.patches):
-    #     # Set the linecolor on the artist to the facecolor, and set the facecolor to None
-    #     col = artist.get_facecolor()
-    #     print(col)
-    #     artist.set_edgecolor(col)
-    #     artist.set_facecolor('None')
-
-    #     # Each box has 6 associated Line2D objects (to make the whiskers, fliers, etc.)
-    #     # Loop over them here, and use the same colour as above
-    #     for j in range(i*6,i*6+6):
-    #         line = ax.lines[j]
-    #         line.set_color(col)
-    #         line.set_mfc(col)
-    #         line.set_mec(col)
 
     # # Also fix the legend
     # for legpatch in ax.get_legend().get_patches():
@@ -204,15 +213,14 @@ def main():
 
     # cmap = sns.color_palette("hls", 8, as_cmap=True)
 
-    custom_lines = [
-        Line2D([0], [0], color=colors[0], lw=1),
-        Line2D([0], [0], color=colors[1], lw=1),
-        Line2D([0], [0], color=colors[2], lw=1),
-    ]
-    ax.legend(custom_lines, ["Ours", "GNC", "LM"])
+    ax.legend(custom_lines, custom_labels)
     plt.savefig(f"{dataset_name}_times.png", dpi=600, bbox_inches="tight")
     plt.show()
 
+
+def plot_average_translation_error(
+    dataset_name, all_data, custom_labels, custom_lines, colors
+):
     fig, ax = plt.subplots(1)
     sns.boxplot(
         x="Outlier Rate (\\%)",
@@ -222,15 +230,9 @@ def main():
         palette=colors,
         ax=ax,
     )
-    print(ax.patches)
-    # plt.yscale("log")
-    box_patches = [
-        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
-    ]
-    if (
-        len(box_patches) == 0
-    ):  # in matplotlib older than 3.5, the boxes are stored in ax2.artists
-        box_patches = ax.artists
+
+    box_patches = get_box_patches(ax)
+
     num_patches = len(box_patches)
     lines_per_boxplot = len(ax.lines) // num_patches
     for i, patch in enumerate(box_patches):
@@ -245,21 +247,6 @@ def main():
             line.set_color(col)
             line.set_mfc(col)  # facecolor of fliers
             line.set_mec(col)  # edgecolor of fliers
-
-    # for i,artist in enumerate(ax.patches):
-    #     # Set the linecolor on the artist to the facecolor, and set the facecolor to None
-    #     col = artist.get_facecolor()
-    #     print(col)
-    #     artist.set_edgecolor(col)
-    #     artist.set_facecolor('None')
-
-    #     # Each box has 6 associated Line2D objects (to make the whiskers, fliers, etc.)
-    #     # Loop over them here, and use the same colour as above
-    #     for j in range(i*6,i*6+6):
-    #         line = ax.lines[j]
-    #         line.set_color(col)
-    #         line.set_mfc(col)
-    #         line.set_mec(col)
 
     # # Also fix the legend
     # for legpatch in ax.get_legend().get_patches():
@@ -277,15 +264,14 @@ def main():
     #          ax.lines[j].set_color('black')
     #          plt.legend()
 
-    custom_lines = [
-        Line2D([0], [0], color=colors[0], lw=1),
-        Line2D([0], [0], color=colors[1], lw=1),
-        Line2D([0], [0], color=colors[2], lw=1),
-    ]
-    ax.legend(custom_lines, ["Ours", "GNC", "LM"])
+    ax.legend(custom_lines, custom_labels)
     plt.savefig(f"{dataset_name}_tran.png", dpi=600, bbox_inches="tight")
     plt.show()
 
+
+def plot_average_rotation_error(
+    dataset_name, all_data, custom_labels, custom_lines, colors
+):
     fig, ax = plt.subplots(1)
     sns.boxplot(
         x="Outlier Rate (\\%)",
@@ -295,15 +281,9 @@ def main():
         palette=colors,
         ax=ax,
     )
-    # plt.yscale("log")
-    print(ax.patches)
-    box_patches = [
-        patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
-    ]
-    if (
-        len(box_patches) == 0
-    ):  # in matplotlib older than 3.5, the boxes are stored in ax2.artists
-        box_patches = ax.artists
+
+    box_patches = get_box_patches(ax)
+
     num_patches = len(box_patches)
     lines_per_boxplot = len(ax.lines) // num_patches
     for i, patch in enumerate(box_patches):
@@ -318,21 +298,6 @@ def main():
             line.set_color(col)
             line.set_mfc(col)  # facecolor of fliers
             line.set_mec(col)  # edgecolor of fliers
-
-    # for i,artist in enumerate(ax.patches):
-    #     # Set the linecolor on the artist to the facecolor, and set the facecolor to None
-    #     col = artist.get_facecolor()
-    #     print(col)
-    #     artist.set_edgecolor(col)
-    #     artist.set_facecolor('None')
-
-    #     # Each box has 6 associated Line2D objects (to make the whiskers, fliers, etc.)
-    #     # Loop over them here, and use the same colour as above
-    #     for j in range(i*6,i*6+6):
-    #         line = ax.lines[j]
-    #         line.set_color(col)
-    #         line.set_mfc(col)
-    #         line.set_mec(col)
 
     # # Also fix the legend
     # for legpatch in ax.get_legend().get_patches():
@@ -350,12 +315,7 @@ def main():
     #          ax.lines[j].set_color('black')
     #          plt.legend()
 
-    custom_lines = [
-        Line2D([0], [0], color=colors[0], lw=1),
-        Line2D([0], [0], color=colors[1], lw=1),
-        Line2D([0], [0], color=colors[2], lw=1),
-    ]
-    ax.legend(custom_lines, ["Ours", "GNC", "LM"])
+    ax.legend(custom_lines, custom_labels)
 
     plt.savefig(f"{dataset_name}_rot.png", dpi=600, bbox_inches="tight")
     plt.show()
