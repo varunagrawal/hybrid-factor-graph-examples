@@ -86,6 +86,9 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
     """Collect the data to plot from the different .g2o files."""
     gt_graph, gt_vals = gtsam.readG2o(prefix_path + "0/1/out_nonrobust.g2o", is3D)
 
+    hfg_ate_tran = {}
+    hfg_ate_rot = {}
+
     dcsam_ate_tran = {}
     dcsam_ate_rot = {}
 
@@ -105,7 +108,10 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
         ]
     )
 
-    for outlier_pct in outlier_pcts:  # [10, 20, 30, 40, 50, 60, 70, 80]:
+    for outlier_pct in outlier_pcts:
+        hfg_ate_tran[outlier_pct] = []
+        hfg_ate_rot[outlier_pct] = []
+
         dcsam_ate_tran[outlier_pct] = []
         dcsam_ate_rot[outlier_pct] = []
 
@@ -116,6 +122,15 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
         lm_ate_rot[outlier_pct] = []
 
         for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+            # Hybrid Factor Graph Processing
+            hfg_graph, hfg_est = gtsam.readG2o(
+                prefix_path + f"{outlier_pct}/{seed}/out_hfg_robust.g2o", is3D
+            )
+            hfg_tran = g2o_ate_tran(hfg_est, gt_vals, is3D)
+            hfg_rot = g2o_ate_rot(hfg_est, gt_vals, is3D)
+            hfg_ate_tran[outlier_pct].append(hfg_tran)
+            hfg_ate_rot[outlier_pct].append(hfg_rot)
+
             # DCSAM Processing
             dcsam_graph, dcsam_est = gtsam.readG2o(
                 prefix_path + f"{outlier_pct}/{seed}/out_robust.g2o", is3D
@@ -147,6 +162,15 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
             dcsam_time, gnc_time, lm_time = parse_times(
                 prefix_path + f"{outlier_pct}/{seed}/times.txt"
             )
+
+            all_data.loc[len(all_data.index)] = [
+                "Hybrid Factor Graph",
+                outlier_pct,
+                dcsam_time,  # NOTE: Placeholder since we don't yet compute HFG times
+                hfg_tran,
+                hfg_rot,
+            ]
+
             all_data.loc[len(all_data.index)] = [
                 "DCSAM",
                 outlier_pct,
@@ -258,15 +282,15 @@ def main():
     all_data = collect_data(
         prefix_path=prefix_path,
         is3D=is3D,
-        outlier_pcts=(10, 20),
+        outlier_pcts=(10, 20, 30, 40, 50, 60, 70),
     )
 
     sns.set_style("white")
     # sns.set_palette("bright")
     # pal = "bright"
 
-    colors = ["red", "green", "blue"]
-    labels = ["Ours", "GNC", "LM"]
+    colors = ["purple", "red", "green", "blue"]
+    labels = ["Ours", "DCSAM", "GNC", "LM"]
     lines = [Line2D([0], [0], color=color, lw=1) for color in colors]
 
     # plot_times(dataset_name, all_data, labels, lines, colors)
