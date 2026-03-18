@@ -2,7 +2,7 @@
 Functions to plot boxplots for PGO monte carlo results.
 """
 
-import sys
+import argparse
 
 import gtsam
 import matplotlib
@@ -235,16 +235,25 @@ def plot_average_rotation_error(
     plt.show()
 
 
+def parse_args():
+    """Parse commandline args."""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dataset_name")
+    parser.add_argument("--is3D", action="store_true", default=False)
+    parser.add_argument("--dataset_path", default="../output/robust_pgo_vanilla/")
+
+    return parser.parse_args()
+
+
 def main():
     """Main runner."""
 
-    if len(sys.argv) < 3:
-        print("Usage:  python3 plot_g2o_results.py [ dataset_name ] [ is3D 0/1 ]")
-        sys.exit()
+    args = parse_args()
 
-    dataset_name = sys.argv[1]
-    is3D = int(sys.argv[2]) > 0
-    prefix_path = f"../output/robust_pgo_vanilla/{dataset_name}/"
+    dataset_name = args.dataset_name
+    is3D = args.is3D
+    prefix_path = f"{args.dataset_path}/{dataset_name}/"
 
     all_data = collect_data(
         prefix_path=prefix_path,
