@@ -85,9 +85,12 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
   size_t updateCount = 0;
 
   // Create the smoother to optimize the HFG
-  gtsam::HybridSmoother smoother;
+  gtsam::HybridSmoother smoother(0.99);
 
   std::set<gtsam::Key> added_keys;
+
+  // Initialize hfg with the pose graph so we don't get ILS
+  hfg.push_back(graphWithOutliers);
 
   // Add all good measurements.
   for (const auto& factor : graphWithOutliers) {
@@ -118,11 +121,11 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       gtsam::DiscreteKey dk(gtsam::Symbol('d', k), 2);
       gtsam::HybridNonlinearFactor dcmf(dk, components);
 
-      hfg.push_back(bwFactor);
-      // hfg.push_back(dcmf);
-      // numberOfHybridFactors += 1;
-      // gtsam::DecisionTreeFactor dpf(dk, lc_probabilities);
-      // hfg.push_back(dpf);
+      // hfg.push_back(bwFactor);
+      hfg.push_back(dcmf);
+      numberOfHybridFactors += 1;
+      gtsam::DecisionTreeFactor dpf(dk, lc_probabilities);
+      hfg.push_back(dpf);
 
       k++;
 
@@ -236,6 +239,13 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
   result.insert_or_assign(initial_values.retract(delta.continuous()));
   std::cout << "Initial cost: " << graph.error(initial_values) << std::endl;
   std::cout << "Final cost [HFG]: " << graph.error(result) << std::endl;
+
+  std::string path_prefix = "../../output/robust_pgo_vanilla/" + dataset_name +
+                            "/" + std::to_string((int)(100 * outlier_pct)) +
+                            "/" + std::to_string(random_seed) + "/";
+  std::filesystem::create_directories(path_prefix);
+  gtsam::writeG2o(graphWithOutliers, result,
+                  path_prefix + "out_hfg_robust.g2o");
 }
 
 int main(int argc, char** argv) {
