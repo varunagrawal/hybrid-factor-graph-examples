@@ -80,12 +80,13 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
 
   size_t updateFrequency = 4;
   size_t maxNrHypotheses = 4;
-  size_t reLinearizationFrequency = 16;  // best value: 6;
+  size_t reLinearizationFrequency = 16;
   size_t numberOfHybridFactors = 0;
   size_t updateCount = 0;
+  double dmrThreshold = 0.99;
 
   // Create the smoother to optimize the HFG
-  gtsam::HybridSmoother smoother(0.99);
+  gtsam::HybridSmoother smoother(dmrThreshold);
 
   std::set<gtsam::Key> added_keys;
 
@@ -218,7 +219,7 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       k++;
 
       if (numberOfHybridFactors >= updateFrequency) {
-        smoother.update(hfg, initial_values, maxNrHypotheses, 0.99);
+        smoother.update(hfg, initial_values, maxNrHypotheses);
         numberOfHybridFactors = 0;
         updateCount++;
 
