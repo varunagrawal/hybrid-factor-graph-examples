@@ -209,3 +209,6 @@ __marimo__/
 .vscode
 
 **/.DS_Store
+
+# Experiments output
+output/

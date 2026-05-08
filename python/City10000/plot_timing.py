@@ -1,5 +1,5 @@
 """
-Script to plot the timings from ISAM2, MH-ISAM2 and Hybrid Factor Graphs when running on the City10000 dataset.
+Script to plot the timings from iSAM2, MH-iSAM2 and Hybrid Factor Graphs when running on the City10000 dataset.
 """
 
 import numpy as np
@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 
 
 def plot_cumulative_time():
-    CLOCKS_PER_SEC = 1000000
     isam2_times = np.loadtxt("ISAM2_City10000_time.txt",
                              delimiter=",",
                              dtype=float)
@@ -31,7 +30,7 @@ def plot_cumulative_time():
              label='iSAM2',
              color=(0.1, 0.1, 0.9))
     plt.plot(timesteps,
-             mh_isam_times[:N]
+             mh_isam_times[:N],
              linewidth=linewidth,
              label='MH-iSAM2',
              color=(0.7, 0.1, 0.1))
