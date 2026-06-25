@@ -33,7 +33,7 @@ class Experiment {
 
  public:
   // Parameters with default values
-  size_t maxLoopCount = 8000;  // 200 //2000 //8000
+  size_t maxLoopCount = 20687;  // 200 //2000 //8000
 
   // false: run original iSAM2 without ambiguities
   // true: run original iSAM2 with ambiguities
@@ -52,11 +52,11 @@ class Experiment {
     ISAM2Params parameters;
     parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams();
     parameters.relinearizeThreshold = 0.1;
-    parameters.relinearizeSkip = 10;
+    parameters.relinearizeSkip = 2;
     isam2_ = ISAM2(parameters);
   }
 
-  inline clock_t smootherUpdate() {
+  clock_t smootherUpdate() {
     clock_t beforeUpdate = clock();
     isam2_.update(graph_, initial_);
     results = isam2_.calculateEstimate();
@@ -122,6 +122,7 @@ class Experiment {
               X(keyS), X(keyT), odomPose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
+        index += 1;
       }
 
       // Perform update
@@ -143,8 +144,6 @@ class Experiment {
                     << std::endl;
         }
       }
-
-      index += 1;
     }
 
     // Final update
