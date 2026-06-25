@@ -31,7 +31,7 @@ def parse_times(fname):
 
 
 def get_box_patches(ax):
-    print(ax.patches)
+    # print(ax.patches)
     # plt.yscale("log")
     box_patches = [
         patch for patch in ax.patches if isinstance(patch, matplotlib.patches.PathPatch)
@@ -228,6 +228,8 @@ def plot_average_translation_error(
         data=all_data,
         palette=colors,
         ax=ax,
+        flierprops={"marker": "D"},
+        # log_scale=True,
     )
 
     ax = customize_plot(ax)
@@ -249,6 +251,8 @@ def plot_average_rotation_error(
         data=all_data,
         palette=colors,
         ax=ax,
+        flierprops={"marker": "D"},
+        # log_scale=True,
     )
 
     ax = customize_plot(ax)
@@ -265,7 +269,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset_name")
     parser.add_argument("--is3D", action="store_true", default=False)
-    parser.add_argument("--dataset_path", default="../output/robust_pgo_vanilla/")
+    parser.add_argument("--dataset_path", default="../output/robust_pgo_vanilla")
 
     return parser.parse_args()
 
@@ -293,7 +297,7 @@ def main():
     labels = ["Ours", "DCSAM", "GNC", "LM"]
     lines = [Line2D([0], [0], color=color, lw=1) for color in colors]
 
-    # plot_times(dataset_name, all_data, labels, lines, colors)
+    plot_times(dataset_name, all_data, labels, lines, colors)
     plot_average_translation_error(dataset_name, all_data, labels, lines, colors)
     plot_average_rotation_error(dataset_name, all_data, labels, lines, colors)
 
