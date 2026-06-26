@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
   gtsam::NonlinearFactorGraph::shared_ptr graph;
   gtsam::Values::shared_ptr initial;
 
-  std::tie(graph, initial) = gtsam::readG2o(path, false);
+  std::tie(graph, initial) = readDataset(path);
 
   std::cout << "Loaded a graph of size: " << graph->size() << std::endl;
 

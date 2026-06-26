@@ -359,7 +359,7 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
   std::cout << "OUTLIER PCT" << std::to_string((int)(100 * outlier_pct))
             << std::endl;
-  std::string path_prefix = "../output/robust_pgo_vanilla/" + dataset_name +
+  std::string path_prefix = "../../output/robust_pgo_vanilla/" + dataset_name +
                             "/" + std::to_string((int)(100 * outlier_pct)) +
                             "/" + std::to_string(random_seed) + "/";
   std::filesystem::create_directories(path_prefix);
@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
   gtsam::NonlinearFactorGraph::shared_ptr graph;
   gtsam::Values::shared_ptr initial;
 
-  std::tie(graph, initial) = gtsam::readG2o(path, false);
+  std::tie(graph, initial) = readDataset(path);
 
   std::cout << "Loaded a graph of size: " << graph->size() << std::endl;
 
