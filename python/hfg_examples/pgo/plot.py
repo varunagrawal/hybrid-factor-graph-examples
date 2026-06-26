@@ -23,11 +23,13 @@ def parse_times(fname):
     # DCSAM: {dcsam_time}
     # GNC: {gnc_time}
     # LM: {lm_time}
+    # HFG: {hfg_time}
     dcsam_time = float(contents[0].split()[1])
     gnc_time = float(contents[1].split()[1])
     lm_time = float(contents[2].split()[1])
+    hfg_time = float(contents[3].split()[1])
     f.close()
-    return dcsam_time, gnc_time, lm_time
+    return dcsam_time, gnc_time, lm_time, hfg_time
 
 
 def get_box_patches(ax):
@@ -80,6 +82,45 @@ def customize_plot(ax):
     #          plt.legend()
 
     return ax
+
+
+def print_stats(
+    outlier_pct,
+    hfg_ate_tran,
+    hfg_ate_rot,
+    dcsam_ate_tran,
+    dcsam_ate_rot,
+    gnc_ate_tran,
+    gnc_ate_rot,
+    lm_ate_tran,
+    lm_ate_rot,
+):
+    """Print the statistics for each method and outlier percentage."""
+    print(f"Outlier Percentage: {outlier_pct}%")
+    print(
+        f"HFG: "
+        # f"Mean Time = {sum(hfg_times[outlier_pct]) / len(hfg_times[outlier_pct]):.4f}s, "
+        f"Mean Translation Error = {sum(hfg_ate_tran[outlier_pct]) / len(hfg_ate_tran[outlier_pct]):.4f}m, "
+        f"Mean Rotation Error = {sum(hfg_ate_rot[outlier_pct]) / len(hfg_ate_rot[outlier_pct]):.4f}deg"
+    )
+    print(
+        f"DCSAM: "
+        # f"Mean Time = {sum(dcsam_times[outlier_pct]) / len(dcsam_times[outlier_pct]):.4f}s, "
+        f"Mean Translation Error = {sum(dcsam_ate_tran[outlier_pct]) / len(dcsam_ate_tran[outlier_pct]):.4f}m, "
+        f"Mean Rotation Error = {sum(dcsam_ate_rot[outlier_pct]) / len(dcsam_ate_rot[outlier_pct]):.4f}deg"
+    )
+    print(
+        f"GNC: "
+        # f"Mean Time = {sum(gnc_times[outlier_pct]) / len(gnc_times[outlier_pct]):.4f}s, "
+        f"Mean Translation Error = {sum(gnc_ate_tran[outlier_pct]) / len(gnc_ate_tran[outlier_pct]):.4f}m, "
+        f"Mean Rotation Error = {sum(gnc_ate_rot[outlier_pct]) / len(gnc_ate_rot[outlier_pct]):.4f}deg"
+    )
+    print(
+        f"LM: "
+        # f"Mean Time = {sum(lm_times[outlier_pct]) / len(lm_times[outlier_pct]):.4f}s,"
+        f" Mean Translation Error = {sum(lm_ate_tran[outlier_pct]) / len(lm_ate_tran[outlier_pct]):.4f}m, "
+        f"Mean Rotation Error = {sum(lm_ate_rot[outlier_pct]) / len(lm_ate_rot[outlier_pct]):.4f}deg"
+    )
 
 
 def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
@@ -159,14 +200,14 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
             lm_ate_rot[outlier_pct].append(lm_rot)
 
             # Get times
-            dcsam_time, gnc_time, lm_time = parse_times(
+            dcsam_time, gnc_time, lm_time, hfg_time = parse_times(
                 prefix_path + f"{outlier_pct}/{seed}/times.txt"
             )
 
             all_data.loc[len(all_data.index)] = [
                 "Hybrid Factor Graph",
                 outlier_pct,
-                dcsam_time,  # NOTE: Placeholder since we don't yet compute HFG times
+                hfg_time,
                 hfg_tran,
                 hfg_rot,
             ]
@@ -194,6 +235,19 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
                 lm_tran,
                 lm_rot,
             ]
+
+        # Print statistics for each outlier percentage
+        print_stats(
+            outlier_pct,
+            hfg_ate_tran,
+            hfg_ate_rot,
+            dcsam_ate_tran,
+            dcsam_ate_rot,
+            gnc_ate_tran,
+            gnc_ate_rot,
+            lm_ate_tran,
+            lm_ate_rot,
+        )
 
     return all_data
 
@@ -283,10 +337,15 @@ def main():
     is3D = args.is3D
     prefix_path = f"{args.dataset_path}/{dataset_name}/"
 
+    if dataset_name.lower() == "intel":
+        outlier_pcts = (10, 20, 30, 40, 50)
+    else:
+        outlier_pcts = (10, 20, 30, 40, 50, 60, 70)
+
     all_data = collect_data(
         prefix_path=prefix_path,
         is3D=is3D,
-        outlier_pcts=(10, 20, 30, 40, 50, 60, 70),
+        outlier_pcts=outlier_pcts,
     )
 
     sns.set_style("white")
