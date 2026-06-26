@@ -232,10 +232,10 @@ class DCSAMEstimator(BaseEstimator):
 
         result.insert_or_assign(estimates.nonlinear())
 
-        print(f"Final error: {self.smoother_.error(estimates.continuous())}")
+        # print(f"Final error: {self.smoother_.error(estimates.continuous())}")
 
         end_time = time.time()
         total_time = end_time - start_time
         print(f"Total time: {total_time} seconds")
 
-        self.save_results_and_timing(result, key_t + 1, time_list)
+        self.save_results_and_timing(result, key_t + 1, time_list, self.num_timesteps)

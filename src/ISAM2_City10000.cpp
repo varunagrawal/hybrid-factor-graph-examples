@@ -117,6 +117,7 @@ class Experiment {
         if (isWithAmbiguity && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                           kPoseNoiseModel));
+
         } else {
           graph_.add(BetweenFactor<Pose2>(
               X(keyS), X(keyT), odomPose,
