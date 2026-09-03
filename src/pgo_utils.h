@@ -139,3 +139,41 @@ void writeDiscreteMarginals(const gtsam::KeySet& discreteKeys,
     file << outlier_prob << std::endl;
   }
 }
+
+/**
+ * @brief Read the dataset from the provided file.
+ * Supports both g2o and TORO formats.
+ * Returns a pair of NonlinearFactorGraph and Values.
+ *
+ * @param dataset_path
+ * @return std::pair<gtsam::NonlinearFactorGraph::shared_ptr,
+ * gtsam::Values::shared_ptr>
+ */
+std::pair<gtsam::NonlinearFactorGraph::shared_ptr, gtsam::Values::shared_ptr>
+readDataset(const std::string& dataset_path) {
+  std::string base_filename =
+      dataset_path.substr(dataset_path.find_last_of("/\\") + 1);
+  std::string::size_type const p(base_filename.find_last_of('.'));
+  std::string file_extension = base_filename.substr(p + 1);
+
+  gtsam::NonlinearFactorGraph::shared_ptr graph;
+  gtsam::Values::shared_ptr initial;
+
+  if (file_extension == "g2o") {
+    std::tie(graph, initial) = gtsam::readG2o(dataset_path, false);
+  } else if (file_extension == "graph") {
+    std::tie(graph, initial) =
+        gtsam::load2D(dataset_path,
+                      gtsam::SharedNoiseModel(),  // Empty model defaults to
+                                                  // file's noise values
+                      0,                          // maxID
+                      false,                      // addNoise
+                      true,                       // smart
+                      gtsam::NoiseFormatTORO);
+  } else {
+    std::cerr << "Unsupported file extension: " << file_extension << std::endl;
+    exit(1);
+  }
+
+  return std::make_pair(graph, initial);
+}

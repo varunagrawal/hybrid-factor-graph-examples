@@ -12,6 +12,7 @@
 #include <gtsam/slam/dataset.h>
 
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -181,6 +182,9 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
 
   std::cout << "outlier graph size: " << outlierGraph.size() << std::endl;
 
+  // Record the computation time for each smoother update.
+  std::vector<double> hfg_compute_times;
+
   // Add all outlier measurements.
   for (const auto& factor : outlierGraph) {
     // Ensure that we correctly retrieve a BetweenFactor
@@ -219,7 +223,17 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       k++;
 
       if (numberOfHybridFactors >= updateFrequency) {
+        auto t1 = std::chrono::high_resolution_clock::now();
         smoother.update(hfg, initial_values, maxNrHypotheses);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        // Get milliseconds as int
+        auto ms_int =
+            std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+        // Convert to double
+        double ms_double = static_cast<double>(ms_int.count());
+        // Get compute time in sec
+        hfg_compute_times.push_back(ms_double / 1000.0);
+
         numberOfHybridFactors = 0;
         updateCount++;
 
@@ -247,6 +261,14 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
   std::filesystem::create_directories(path_prefix);
   gtsam::writeG2o(graphWithOutliers, result,
                   path_prefix + "out_hfg_robust.g2o");
+
+  // Write timing info
+  double total_time_hfg = 0.0;
+  for (size_t idx = 0; idx < hfg_compute_times.size(); idx++) {
+    total_time_hfg += hfg_compute_times[idx];
+  }
+  std::ofstream time_file(path_prefix + "times.txt", std::ios_base::app);
+  time_file << "HFG: " << std::to_string(total_time_hfg) << "\n";
 }
 
 int main(int argc, char** argv) {
@@ -291,7 +313,7 @@ int main(int argc, char** argv) {
   gtsam::NonlinearFactorGraph::shared_ptr graph;
   gtsam::Values::shared_ptr initial;
 
-  std::tie(graph, initial) = gtsam::readG2o(path, false);
+  std::tie(graph, initial) = readDataset(path);
 
   std::cout << "Loaded a graph of size: " << graph->size() << std::endl;
 

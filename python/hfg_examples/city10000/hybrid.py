@@ -47,7 +47,7 @@ class HybridEstimator(BaseEstimator):
 
     def smoother_update(self) -> float:
         """Perform smoother update and optimize the graph."""
-        print(f"Smoother update: {self.new_factors_.size()}")
+        # print(f"Smoother update: {self.new_factors_.size()}")
         before_update = time.time()
         self.smoother_.update(self.new_factors_, self.initial_, self.max_num_hypotheses)
         self.new_factors_.resize(0)
@@ -56,12 +56,12 @@ class HybridEstimator(BaseEstimator):
 
     def reinitialize(self) -> float:
         """Re-linearize, solve ALL, and re-initialize smoother."""
-        print(f"================= Re-Initialize: {self.smoother_.allFactors().size()}")
+        # print(f"================= Re-Initialize: {self.smoother_.allFactors().size()}")
         before_update = time.time()
         self.smoother_.relinearize()
         self.initial_.insert_or_assign(self.smoother_.linearizationPoint())
         after_update = time.time()
-        print(f"Took {after_update - before_update} seconds.")
+        # print(f"Took {after_update - before_update} seconds.")
         return after_update - before_update
 
     def add_odometry_factor(
@@ -87,7 +87,7 @@ class HybridEstimator(BaseEstimator):
 
             discrete_count += 1
             number_of_hybrid_factors += 1
-            print(f"mixture_factor: {key_s} {key_t}")
+            # print(f"mixture_factor: {key_s} {key_t}")
 
         else:
             self.new_factors_.push_back(
@@ -130,7 +130,7 @@ class HybridEstimator(BaseEstimator):
             )
 
         # print loop closure event keys:
-        print(f"Loop closure: {key_s} {key_t}")
+        # print(f"Loop closure: {key_s} {key_t}")
         self.new_factors_.push_back(loop_factor)
 
         loop_count += 1

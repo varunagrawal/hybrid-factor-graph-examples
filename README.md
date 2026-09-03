@@ -2,7 +2,23 @@
 
 Examples and sample applications using GTSAM's hybrid factor graphs
 
-## Plot Comparative Results
+## Pose Graph Optimization
+
+In the `build` directory, run:
+
+```sh
+./src/robust_pgo_mc_2d [dataset] [outliter_percentage] [num_trials]
+```
+
+E.g.
+
+```sh
+./src/robust_pgo_mc_2d ../../data/g2o/CSAIL.g2o 40 2
+```
+
+## City1000 Dataset
+
+### Plot Comparative Results
 
 ```shell
 python python/City10000/plot_results.py ISAM2_GT_city10000.txt \
@@ -10,11 +26,11 @@ python python/City10000/plot_results.py ISAM2_GT_city10000.txt \
         Hybrid_City10000.txt
 ```
 
-## Plot Multiple Estimates At Once
+### Plot Multiple Estimates At Once
 
 ```shell
-python python/City10000/plot_multiple_estimates.py ISAM2_GT_city10000.txt --estimates \
-    multiple_estimates/Hybrid_City10000_100.txt multiple_estimates/Hybrid_City10000_1000.txt \
-    multiple_estimates/Hybrid_City10000_2000.txt multiple_estimates/Hybrid_City10000_5000.txt \
-    multiple_estimates/Hybrid_City10000_20687.txt --indices 100 1000 2000 5000 10000
+python python/City10000/plot_multiple_estimates.py ISAM2_GT_city10000.txt \
+    --estimates \
+    multiple_estimates/Hybrid_City10000_100.txt multiple_estimates/Hybrid_City10000_1000.txt multiple_estimates/Hybrid_City10000_2000.txt multiple_estimates/Hybrid_City10000_5000.txt multiple_estimates/Hybrid_City10000_20687.txt \
+    --indices 100 1000 2000 5000 10000
 ```

@@ -39,7 +39,7 @@ class Experiment {
 
  public:
   // Parameters with default values
-  size_t maxLoopCount = 8000;  // Full dataset is 20687
+  size_t maxLoopCount = 20687;  // Full dataset is 20687
 
   size_t updateFrequency = 1;  // best value: 4;
   size_t maxNrHypotheses = 16;
@@ -235,7 +235,7 @@ class Experiment {
 
     clock_t endTime = clock();
     clock_t totalTime = endTime - startTime;
-    std::cout << "Total time: " << totalTime / CLOCKS_PER_SEC << " seconds"
+    std::cout << "Total time: " << double(totalTime) / CLOCKS_PER_SEC << " seconds"
               << std::endl;
 
     // Write results to file

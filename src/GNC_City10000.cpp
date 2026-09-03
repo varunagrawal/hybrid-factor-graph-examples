@@ -1,15 +1,15 @@
 /**
- * @file   ISAM2_City10000.cpp
- * @brief  Example of using ISAM2 estimation
+ * @file   GNC_City10000.cpp
+ * @brief  Experiment using GNC on the City10000 dataset
  *         with multiple odometry measurements.
  * @author Varun Agrawal
- * @date   January 22, 2025
+ * @date   June 21, 2026
  */
 
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/inference/Symbol.h>
-#include <gtsam/nonlinear/ISAM2.h>
-#include <gtsam/nonlinear/ISAM2Params.h>
+#include <gtsam/nonlinear/GncOptimizer.h>
+#include <gtsam/nonlinear/GncParams.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -35,12 +35,13 @@ class Experiment {
   // Parameters with default values
   size_t maxLoopCount = 20687;  // 200 //2000 //8000
 
-  // false: run original iSAM2 without ambiguities
-  // true: run original iSAM2 with ambiguities
+  // false: run original without ambiguities
+  // true: run original with ambiguities
   bool isWithAmbiguity;
 
  private:
-  ISAM2 isam2_;
+  GncParams<LevenbergMarquardtParams> gncParams_;
+
   NonlinearFactorGraph graph_;
   Values initial_;
   Values results;
@@ -49,20 +50,25 @@ class Experiment {
   /// Construct with filename of experiment to run
   explicit Experiment(const std::string& filename, bool isWithAmbiguity = false)
       : dataset_(filename), isWithAmbiguity(isWithAmbiguity) {
-    ISAM2Params parameters;
-    parameters.optimizationParams = gtsam::ISAM2GaussNewtonParams();
-    parameters.relinearizeThreshold = 0.1;
-    parameters.relinearizeSkip = 2;
-    isam2_ = ISAM2(parameters);
+    // Set options for the non-minimal solver
+    LevenbergMarquardtParams lmParams;
+    lmParams.setMaxIterations(1000);
+    lmParams.setRelativeErrorTol(1e-5);
+
+    // Set GNC-specific options
+    gncParams_ = GncParams<LevenbergMarquardtParams>(lmParams);
+    gncParams_.setLossType(GncLossType::TLS);
   }
 
-  clock_t smootherUpdate() {
+  inline clock_t optimize() {
     clock_t beforeUpdate = clock();
-    isam2_.update(graph_, initial_);
-    results = isam2_.calculateEstimate();
+    // Optimize the graph and print results
+    GncOptimizer<GncParams<LevenbergMarquardtParams>> optimizer(
+        graph_, initial_, gncParams_);
+    results = optimizer.optimize();
     clock_t afterUpdate = clock();
-    graph_.resize(0);
-    initial_.clear();
+    // graph_.resize(0);
+    // initial_.clear();
     return afterUpdate - beforeUpdate;
   }
 
@@ -71,18 +77,12 @@ class Experiment {
     // Initialize local variables
     size_t index = 0;
 
-    std::vector<std::pair<size_t, double>> smootherUpdateTimes;
-
     std::list<double> cumulativeTimeList;
 
     // Set up initial prior
     Pose2 priorPose(0, 0, 0);
     initial_.insert(X(0), priorPose);
     graph_.addPrior<Pose2>(X(0), priorPose, kPriorNoiseModel);
-
-    // Initial update
-    clock_t timeDelta = smootherUpdate();
-    smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
     index += 1;
 
     // Start main loop
@@ -108,7 +108,7 @@ class Experiment {
       }
 
       if (keyS == keyT - 1) {  // new X(key)
-        initial_.insert(X(keyT), results.at<Pose2>(X(keyS)) * odomPose);
+        initial_.insert(X(keyT), initial_.at<Pose2>(X(keyS)) * odomPose);
         graph_.add(
             BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose, kPoseNoiseModel));
 
@@ -117,18 +117,14 @@ class Experiment {
         if (isWithAmbiguity && id % 2 == 0) {
           graph_.add(BetweenFactor<Pose2>(X(keyS), X(keyT), odomPose,
                                           kPoseNoiseModel));
-
         } else {
           graph_.add(BetweenFactor<Pose2>(
               X(keyS), X(keyT), odomPose,
               noiseModel::Diagonal::Sigmas(Vector3::Ones() * 10.0)));
         }
+
         index += 1;
       }
-
-      // Perform update
-      clock_t timeDelta = smootherUpdate();
-      smootherUpdateTimes.push_back(std::make_pair(index, timeDelta));
 
       // Record timing for odometry edges only
       if (keyS == keyT - 1) {
@@ -147,23 +143,20 @@ class Experiment {
       }
     }
 
-    // Final update
-    auto time_delta = smootherUpdate();
-    smootherUpdateTimes.push_back({index, time_delta});
-
-    // Final optimize
-    results = isam2_.calculateBestEstimate();
+    // Final optimize. Modifies `results` to have the final optimized values.
+    optimize();
 
     clock_t endTime = clock();
     clock_t totalTime = endTime - startTime;
-    std::cout << "Total time: " << double(totalTime) / CLOCKS_PER_SEC << " seconds"
-              << std::endl;
+    std::cout << std::setprecision(8)
+              << "Total time: " << double(totalTime) / CLOCKS_PER_SEC
+              << " seconds" << std::endl;
 
     /// Write results to file
-    writeResult(results, (keyT + 1), "ISAM2_City10000.txt");
+    writeResult(results, (keyT + 1), "GNC_City10000.txt");
 
     std::ofstream outfileTime;
-    std::string timeFileName = "ISAM2_City10000_time.txt";
+    std::string timeFileName = "GNC_City10000_time.txt";
     outfileTime.open(timeFileName);
     for (auto accTime : cumulativeTimeList) {
       outfileTime << accTime / CLOCKS_PER_SEC << std::endl;
@@ -171,16 +164,6 @@ class Experiment {
     outfileTime.close();
     std::cout << "Written cumulative time to: " << timeFileName << " file."
               << std::endl;
-
-    std::ofstream timingFile;
-    std::string timingFileName = "ISAM2_City10000_timing.txt";
-    timingFile.open(timingFileName);
-    for (size_t i = 0; i < smootherUpdateTimes.size(); i++) {
-      auto p = smootherUpdateTimes.at(i);
-      timingFile << p.first << ", " << p.second / CLOCKS_PER_SEC << std::endl;
-    }
-    timingFile.close();
-    std::cout << "Wrote timing information to " << timingFileName << std::endl;
   }
 };
 
