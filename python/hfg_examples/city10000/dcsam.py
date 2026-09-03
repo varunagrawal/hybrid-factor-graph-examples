@@ -54,7 +54,7 @@ class DCSAMEstimator(BaseEstimator):
 
     def smoother_update(self) -> float:
         """Perform smoother update and optimize the graph."""
-        print(f"Smoother update: {self.new_factors_.size()}")
+        # print(f"Smoother update: {self.new_factors_.size()}")
         before_update = time.time()
         self.smoother_.update(
             self.new_factors_,
@@ -89,7 +89,7 @@ class DCSAMEstimator(BaseEstimator):
 
             discrete_count += 1
             number_of_hybrid_factors += 1
-            print(f"mixture_factor: {key_s} {key_t}")
+            # print(f"mixture_factor: {key_s} {key_t}")
 
         else:
             self.new_factors_.push_back(
@@ -133,7 +133,7 @@ class DCSAMEstimator(BaseEstimator):
             )
 
         # print loop closure event keys:
-        print(f"Loop closure: {key_s} {key_t}")
+        # print(f"Loop closure: {key_s} {key_t}")
         self.new_factors_.push_back(loop_factor)
 
         loop_count += 1

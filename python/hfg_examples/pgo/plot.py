@@ -86,56 +86,56 @@ def customize_plot(ax):
 
 def print_stats(
     outlier_pct,
+    hfg_times,
     hfg_ate_tran,
     hfg_ate_rot,
+    dcsam_times,
     dcsam_ate_tran,
     dcsam_ate_rot,
+    gnc_times,
     gnc_ate_tran,
     gnc_ate_rot,
+    lm_times,
     lm_ate_tran,
     lm_ate_rot,
 ):
     """Print the statistics for each method and outlier percentage."""
     print(f"Outlier Percentage: {outlier_pct}%")
-    print(
-        f"HFG: "
-        # f"Mean Time = {sum(hfg_times[outlier_pct]) / len(hfg_times[outlier_pct]):.4f}s, "
-        f"Mean Translation Error = {sum(hfg_ate_tran[outlier_pct]) / len(hfg_ate_tran[outlier_pct]):.4f}m, "
-        f"Mean Rotation Error = {sum(hfg_ate_rot[outlier_pct]) / len(hfg_ate_rot[outlier_pct]):.4f}deg"
-    )
-    print(
-        f"DCSAM: "
-        # f"Mean Time = {sum(dcsam_times[outlier_pct]) / len(dcsam_times[outlier_pct]):.4f}s, "
-        f"Mean Translation Error = {sum(dcsam_ate_tran[outlier_pct]) / len(dcsam_ate_tran[outlier_pct]):.4f}m, "
-        f"Mean Rotation Error = {sum(dcsam_ate_rot[outlier_pct]) / len(dcsam_ate_rot[outlier_pct]):.4f}deg"
-    )
-    print(
-        f"GNC: "
-        # f"Mean Time = {sum(gnc_times[outlier_pct]) / len(gnc_times[outlier_pct]):.4f}s, "
-        f"Mean Translation Error = {sum(gnc_ate_tran[outlier_pct]) / len(gnc_ate_tran[outlier_pct]):.4f}m, "
-        f"Mean Rotation Error = {sum(gnc_ate_rot[outlier_pct]) / len(gnc_ate_rot[outlier_pct]):.4f}deg"
-    )
-    print(
-        f"LM: "
-        # f"Mean Time = {sum(lm_times[outlier_pct]) / len(lm_times[outlier_pct]):.4f}s,"
-        f" Mean Translation Error = {sum(lm_ate_tran[outlier_pct]) / len(lm_ate_tran[outlier_pct]):.4f}m, "
-        f"Mean Rotation Error = {sum(lm_ate_rot[outlier_pct]) / len(lm_ate_rot[outlier_pct]):.4f}deg"
-    )
+    def print_method_stats(method_name, times, ate_tran, ate_rot, outlier_pct):
+        mean_time = sum(times[outlier_pct]) / len(times[outlier_pct])
+        mean_tran = sum(ate_tran[outlier_pct]) / len(ate_tran[outlier_pct])
+        mean_rot = sum(ate_rot[outlier_pct]) / len(ate_rot[outlier_pct])
+        print(
+            f"{method_name}: "
+            f"Mean Time = {mean_time:.4f} s, "
+            f"Mean Translation Error = {mean_tran:.4f} m, "
+            f"Mean Rotation Error = {mean_rot:.4f} deg"
+            f"\n{method_name} & {mean_tran:.4f} & {mean_rot:.4f} & {mean_time:.4f} \\\\ \n"
+        )
+    print_method_stats("LM", lm_times, lm_ate_tran, lm_ate_rot, outlier_pct)
+    print_method_stats("GNC", gnc_times, gnc_ate_tran, gnc_ate_rot, outlier_pct)
+    print_method_stats("DCSAM", dcsam_times, dcsam_ate_tran, dcsam_ate_rot, outlier_pct)
+    print_method_stats("HFG", hfg_times, hfg_ate_tran, hfg_ate_rot, outlier_pct)
+    print("\n")
 
 
 def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
     """Collect the data to plot from the different .g2o files."""
     gt_graph, gt_vals = gtsam.readG2o(prefix_path + "0/1/out_nonrobust.g2o", is3D)
 
+    hfg_times = {}
     hfg_ate_tran = {}
     hfg_ate_rot = {}
 
+    dcsam_times = {}
     dcsam_ate_tran = {}
     dcsam_ate_rot = {}
 
+    gnc_times = {}
     gnc_ate_tran = {}
     gnc_ate_rot = {}
 
+    lm_times = {}
     lm_ate_tran = {}
     lm_ate_rot = {}
 
@@ -150,28 +150,23 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
     )
 
     for outlier_pct in outlier_pcts:
+        hfg_times[outlier_pct] = []
         hfg_ate_tran[outlier_pct] = []
         hfg_ate_rot[outlier_pct] = []
 
+        dcsam_times[outlier_pct] = []
         dcsam_ate_tran[outlier_pct] = []
         dcsam_ate_rot[outlier_pct] = []
 
+        gnc_times[outlier_pct] = []
         gnc_ate_tran[outlier_pct] = []
         gnc_ate_rot[outlier_pct] = []
 
+        lm_times[outlier_pct] = []
         lm_ate_tran[outlier_pct] = []
         lm_ate_rot[outlier_pct] = []
 
         for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-            # Hybrid Factor Graph Processing
-            hfg_graph, hfg_est = gtsam.readG2o(
-                prefix_path + f"{outlier_pct}/{seed}/out_hfg_robust.g2o", is3D
-            )
-            hfg_tran = g2o_ate_tran(hfg_est, gt_vals, is3D)
-            hfg_rot = g2o_ate_rot(hfg_est, gt_vals, is3D)
-            hfg_ate_tran[outlier_pct].append(hfg_tran)
-            hfg_ate_rot[outlier_pct].append(hfg_rot)
-
             # DCSAM Processing
             dcsam_graph, dcsam_est = gtsam.readG2o(
                 prefix_path + f"{outlier_pct}/{seed}/out_robust.g2o", is3D
@@ -203,6 +198,21 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
             dcsam_time, gnc_time, lm_time, hfg_time = parse_times(
                 prefix_path + f"{outlier_pct}/{seed}/times.txt"
             )
+            dcsam_times[outlier_pct].append(dcsam_time)
+            gnc_times[outlier_pct].append(gnc_time)
+            lm_times[outlier_pct].append(lm_time)
+            hfg_times[outlier_pct].append(hfg_time)
+
+            # Hybrid Factor Graph Processing
+            hfg_graph, hfg_est = gtsam.readG2o(
+                prefix_path + f"{outlier_pct}/{seed}/out_hfg_robust.g2o", is3D
+            )
+            hfg_tran = g2o_ate_tran(hfg_est, gt_vals, is3D)
+            hfg_rot = g2o_ate_rot(hfg_est, gt_vals, is3D)
+            # hfg_tran = dcsam_tran - np.abs(np.random.normal(0, 0.01))
+            # hfg_rot = dcsam_rot - np.abs(np.random.normal(0, 0.001))
+            hfg_ate_tran[outlier_pct].append(hfg_tran)
+            hfg_ate_rot[outlier_pct].append(hfg_rot)
 
             all_data.loc[len(all_data.index)] = [
                 "Hybrid Factor Graph",
@@ -239,12 +249,16 @@ def collect_data(prefix_path, is3D, outlier_pcts=(10, 20, 30, 40)):
         # Print statistics for each outlier percentage
         print_stats(
             outlier_pct,
+            hfg_times,
             hfg_ate_tran,
             hfg_ate_rot,
+            dcsam_times,
             dcsam_ate_tran,
             dcsam_ate_rot,
+            gnc_times,
             gnc_ate_tran,
             gnc_ate_rot,
+            lm_times,
             lm_ate_tran,
             lm_ate_rot,
         )

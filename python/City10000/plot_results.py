@@ -81,6 +81,7 @@ def compute_error_metrics(gt, estimates, label):
         timestamps = np.arange(len(translations)).astype(
             float
         )  # Use index as timestamp
+
         return trajectory.PoseTrajectory3D(
             np.asarray(translations), np.asarray(rotations), timestamps
         )
@@ -88,8 +89,9 @@ def compute_error_metrics(gt, estimates, label):
     gt_trajectory = get_evo_trajectory(gt)
     estimated_trajectory = get_evo_trajectory(estimates)
 
+    # print(gt_trajectory.num_poses, estimated_trajectory.num_poses)
     gt_sync, est_sync = sync.associate_trajectories(gt_trajectory, estimated_trajectory)
-    ape_metric = metrics.APE(metrics.PoseRelation.full_transformation)
+    ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
     ape_metric.process_data((gt_sync, est_sync))
     ape_stats = ape_metric.get_all_statistics()
     print(f"{label} ATE:")
