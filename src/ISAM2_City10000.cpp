@@ -156,7 +156,7 @@ class Experiment {
 
     clock_t endTime = clock();
     clock_t totalTime = endTime - startTime;
-    std::cout << "Total time: " << totalTime / CLOCKS_PER_SEC << " seconds"
+    std::cout << "Total time: " << double(totalTime) / CLOCKS_PER_SEC << " seconds"
               << std::endl;
 
     /// Write results to file
