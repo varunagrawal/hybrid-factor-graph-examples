@@ -16,6 +16,7 @@
 #include <gtsam/slam/dataset.h>
 #include <time.h>
 
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>

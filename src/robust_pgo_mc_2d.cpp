@@ -10,6 +10,7 @@
 #include <gtsam/slam/dataset.h>
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <random>
 
