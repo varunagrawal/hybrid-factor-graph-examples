@@ -22,21 +22,23 @@
 
 const bool DEBUG = false;
 
-/// @brief Re-linearize, solve ALL, and re-initialize smoother.
-clock_t reInitialize(gtsam::HybridSmoother& smoother,
-                     gtsam::HybridNonlinearFactorGraph& allFactors,
-                     gtsam::Values initial) {
-  clock_t beforeUpdate = clock();
+/**
+ * @brief Re-linearize, solve ALL, update the linearization point, and
+ * re-initialize the smoother.
+ *
+ * The smoother's Bayes net must be linearized at the same point that new
+ * factors are linearized at, so after moving the estimate we re-linearize and
+ * eliminate again before handing the Bayes net back to the smoother.
+ */
+void reInitialize(gtsam::HybridSmoother& smoother,
+                  gtsam::HybridNonlinearFactorGraph& allFactors,
+                  gtsam::Values& estimate) {
   allFactors = allFactors.restrict(smoother.fixedValues());
-  auto linearized = allFactors.linearize(initial);
-  auto bayesNet = linearized->eliminateSequential();
+  auto bayesNet = allFactors.linearize(estimate)->eliminateSequential();
   gtsam::HybridValues delta = bayesNet->optimize();
-  initial = initial.retract(delta.continuous());
+  estimate = estimate.retract(delta.continuous());
+  bayesNet = allFactors.linearize(estimate)->eliminateSequential();
   smoother.reInitialize(std::move(*bayesNet));
-  clock_t afterUpdate = clock();
-  // std::cout << "Took " << (afterUpdate - beforeUpdate) / CLOCKS_PER_SEC
-  //           << " seconds." << std::endl;
-  return afterUpdate - beforeUpdate;
 }
 
 void run_experiment(const gtsam::NonlinearFactorGraph& graph,
@@ -90,10 +92,43 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
   // Create the smoother to optimize the HFG
   gtsam::HybridSmoother smoother(dmrThreshold);
 
-  std::set<gtsam::Key> added_keys;
+  // Current linearization point, updated on every re-initialization.
+  gtsam::Values estimate = initial_values;
 
-  // Initialize hfg with the pose graph so we don't get ILS
-  hfg.push_back(graphWithOutliers);
+  // Record the computation time for each smoother update.
+  std::vector<double> hfg_compute_times;
+
+  // Run a smoother update on the pending factors and re-initialize if needed.
+  auto updateSmoother = [&]() {
+    auto t1 = std::chrono::high_resolution_clock::now();
+    smoother.update(hfg, estimate, maxNrHypotheses);
+    numberOfHybridFactors = 0;
+    updateCount++;
+
+    allFactors.push_back(hfg);
+    hfg.resize(0);
+
+    if (updateCount % reLinearizationFrequency == 0) {
+      reInitialize(smoother, allFactors, estimate);
+    }
+    auto t2 = std::chrono::high_resolution_clock::now();
+    hfg_compute_times.push_back(
+        std::chrono::duration<double>(t2 - t1).count());
+  };
+
+  // Pre-load the odometry and prior (but not the loop closures, which must stay
+  // hybrid) so that every per-mode Gaussian system is well-conditioned enough
+  // to pass GTSAM's normalized Cholesky pivot check. Without this, the first
+  // smoother update throws an IndeterminateSystemException on CSAIL.
+  // NOTE: this double-counts odometry and the prior, since they are also added
+  // in the loop below.
+  for (const auto& factor : graphWithOutliers) {
+    auto bwFactor =
+        std::dynamic_pointer_cast<gtsam::BetweenFactor<gtsam::Pose2>>(factor);
+    if (!(bwFactor && isLoopClosure(*bwFactor))) {
+      hfg.push_back(factor);
+    }
+  }
 
   // Add all good measurements.
   for (const auto& factor : graphWithOutliers) {
@@ -139,16 +174,7 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       }
 
       if (numberOfHybridFactors >= updateFrequency) {
-        smoother.update(hfg, initial_values, maxNrHypotheses);
-        numberOfHybridFactors = 0;
-        updateCount++;
-
-        allFactors.push_back(hfg);
-        hfg.resize(0);
-
-        if (updateCount % reLinearizationFrequency == 0) {
-          reInitialize(smoother, allFactors, initial_values);
-        }
+        updateSmoother();
       }
 
     } else {
@@ -156,9 +182,7 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
     }
   }
 
-  smoother.update(hfg, initial_values, maxNrHypotheses);
-  allFactors.push_back(hfg);
-  hfg.resize(0);
+  updateSmoother();
 
   size_t num_original_lc = k;
 
@@ -182,9 +206,6 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       graph.keyVector(), num_outliers, inlier_model, false, random_seed);
 
   std::cout << "outlier graph size: " << outlierGraph.size() << std::endl;
-
-  // Record the computation time for each smoother update.
-  std::vector<double> hfg_compute_times;
 
   // Add all outlier measurements.
   for (const auto& factor : outlierGraph) {
@@ -224,35 +245,23 @@ void run_experiment(const gtsam::NonlinearFactorGraph& graph,
       k++;
 
       if (numberOfHybridFactors >= updateFrequency) {
-        auto t1 = std::chrono::high_resolution_clock::now();
-        smoother.update(hfg, initial_values, maxNrHypotheses);
-        auto t2 = std::chrono::high_resolution_clock::now();
-        // Get milliseconds as int
-        auto ms_int =
-            std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-        // Convert to double
-        double ms_double = static_cast<double>(ms_int.count());
-        // Get compute time in sec
-        hfg_compute_times.push_back(ms_double / 1000.0);
-
-        numberOfHybridFactors = 0;
-        updateCount++;
-
-        allFactors.push_back(hfg);
-        hfg.resize(0);
-
-        if (updateCount % reLinearizationFrequency == 0) {
-          reInitialize(smoother, allFactors, initial_values);
-        }
+        updateSmoother();
       }
     } else {
       hfg.push_back(factor);
     }
   }
 
-  gtsam::Values result;
+  // Flush any remaining factors that didn't fill a full update batch.
+  if (hfg.size() > 0) {
+    updateSmoother();
+  }
+
+  auto t1 = std::chrono::high_resolution_clock::now();
   gtsam::HybridValues delta = smoother.optimize();
-  result.insert_or_assign(initial_values.retract(delta.continuous()));
+  gtsam::Values result = estimate.retract(delta.continuous());
+  auto t2 = std::chrono::high_resolution_clock::now();
+  hfg_compute_times.push_back(std::chrono::duration<double>(t2 - t1).count());
   std::cout << "Initial cost: " << graph.error(initial_values) << std::endl;
   std::cout << "Final cost [HFG]: " << graph.error(result) << std::endl;
 
