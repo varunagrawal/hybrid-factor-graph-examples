@@ -79,6 +79,8 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
       inlier_model = bwFactor->noiseModel();
       // std::cout << inlier_model->sigmas() << std::endl;
 
+      // The outlier mode is uniform (see robust_pgo.h). This wide factor only
+      // stands in for a zero-information factor on the same keys.
       gtsam::Vector3 outlier_sigmas = 4000.0 * inlier_model->sigmas();
 
       gtsam::noiseModel::Diagonal::shared_ptr outlierModel =
@@ -86,7 +88,8 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
       // Build a vector of components factors (inlier model, outlier model)
       auto components =
-          get_factor_components_2d(bwFactor, inlier_model, outlierModel);
+          get_factor_components_2d(bwFactor, inlier_model, outlierModel,
+                                   DEFAULT_OUTLIER_LOG_VOLUME_RATIO_2D);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).
@@ -147,6 +150,8 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
       inlier_model = bwFactor->noiseModel();
 
+      // The outlier mode is uniform (see robust_pgo.h). This wide factor only
+      // stands in for a zero-information factor on the same keys.
       gtsam::Vector3 outlier_sigmas = 4000.0 * inlier_model->sigmas();
 
       gtsam::noiseModel::Diagonal::shared_ptr outlierModel =
@@ -154,7 +159,8 @@ void run_experiment2D(const gtsam::NonlinearFactorGraph& graph,
 
       // Build a vector of components factors (inlier model, outlier model)
       auto components =
-          get_factor_components_2d(bwFactor, inlier_model, outlierModel);
+          get_factor_components_2d(bwFactor, inlier_model, outlierModel,
+                                   DEFAULT_OUTLIER_LOG_VOLUME_RATIO_2D);
 
       // Create a discrete key to index into components. Cardinality is 2
       // since a loop closure is either an inlier (0) or outlier (1).
